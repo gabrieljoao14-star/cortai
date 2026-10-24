@@ -1,6 +1,6 @@
 # App Cortaí publicado como Worker só de arquivos estáticos (sem código de servidor).
 # Publicar: python3 gerar.py && npx wrangler@4.20.0 deploy (dentro desta pasta)
-name = "corta-app"
+name = "cortai-app"
 compatibility_date = "2026-10-01"
 account_id = "8af97ce0f771845fa52552fb549cbc90"
 
@@ -9,8 +9,4 @@ directory = "./public"
 
 [[routes]]
 pattern = "cortai.dvbusiness.online"
-custom_domain = true
-
-[[routes]]
-pattern = "corta.dvbusiness.online"   # endereço antigo continua abrindo o app
 custom_domain = true
