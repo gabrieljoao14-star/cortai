@@ -1,4 +1,5 @@
 import importlib
+import os
 
 
 def test_alinhamento_vira_palavras():
@@ -20,7 +21,8 @@ def test_chave_fica_so_no_arquivo_local(tmp_path, monkeypatch):
     assert v.chave() is None
     v._gravar_env({"ELEVENLABS_API_KEY": "sk_teste_1234567890abcdef"})
     assert v.chave() == "sk_teste_1234567890abcdef"
-    assert (tmp_path / ".env").stat().st_mode & 0o077 == 0     # só o dono lê
+    if os.name != "nt":                                         # no Windows a pasta do usuário já é só dele
+        assert (tmp_path / ".env").stat().st_mode & 0o077 == 0     # só o dono lê
     v.desconectar()
     assert v.chave() is None
     monkeypatch.delenv("CORTA_HOME")

@@ -12,7 +12,8 @@ dependencies = [
     "pillow>=10.3",
     "psutil>=5.9",
     "opencv-python-headless>=4.9,<5",
-    "tinysoundfont>=0.3.7",
+    # trilha composta: só onde há versão pronta (Mac Apple, Windows, Linux). Mac Intel teria de compilar.
+    "tinysoundfont>=0.3.7; sys_platform != 'darwin' or platform_machine == 'arm64'",
 ]
 
 [project.optional-dependencies]
@@ -21,6 +22,11 @@ forte = ["demucs>=4.0.1", "torch>=2.2", "torchaudio>=2.2"]
 
 [project.scripts]
 corta = "corta.cli:main"
+
+[tool.uv]
+# o tinysoundfont pede o pyaudio só para tocar som ao vivo (o Cortaí nunca usa); o pyaudio não tem versão
+# pronta para Mac e quebrava a instalação num Mac limpo (teste do GitHub, 24/10)
+override-dependencies = ["pyaudio; sys_platform == 'nunca'"]
 
 [build-system]
 requires = ["hatchling"]

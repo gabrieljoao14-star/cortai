@@ -361,8 +361,11 @@ def legendar(video: Path, estilo: str = "creator-bold", ajustes: dict | None = N
     registrar_saida(job, {"arquivo": str(Path(saida).resolve()), "etapa": "legendar", "estilo": None if sem_legenda else est["id"],
                           "palavras": origem if Path(origem).exists() else None, "mapa": reg.get("mapa"),
                           "origem": str(video), "blocos": str(arq_blocos),
-                          # a conferência não compara imagem dentro dos efeitos (o efeito muda o quadro de propósito)
-                          "efeitos_janelas": [[round(fx["em"], 3), round(fx["em"] + fx["duracao"], 3)] for fx in lista_fx]})
+                          # a conferência não compara imagem onde algo grande cobre o quadro de propósito: efeitos,
+                          # gancho e CTA (no Windows o CTA sozinho já deu falso desvio de 3 quadros, 24/10)
+                          "efeitos_janelas": [[round(fx["em"], 3), round(fx["em"] + fx["duracao"], 3)] for fx in lista_fx]
+                          + ([[0.0, round(gancho_ate or 0.0, 3)]] if gancho else [])
+                          + ([[round(cta_ini, 3), round(dur + 1, 3)]] if cta and cta_ini is not None else [])})
     if not os.environ.get("CORTA_MANTER"):          # CORTA_MANTER=1 guarda as imagens para diagnóstico
         shutil.rmtree(pasta, ignore_errors=True)
     log(f"   → {saida}")

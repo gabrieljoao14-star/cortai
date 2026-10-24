@@ -106,7 +106,11 @@ def _bateria(tipo: str, t0: float, beat: float, compassos_fim: float, eventos: l
 def compor(estilo: str, duracao: float, gancho_ate: float = 0.0, impactos: list[float] | None = None,
            cta_em: float | None = None, semente: int = 11) -> np.ndarray:
     """Áudio estéreo float32 a 48 kHz, com a duração exata do vídeo."""
-    import tinysoundfont
+    try:
+        import tinysoundfont
+    except ImportError:
+        raise CortaErro("A trilha composta não está disponível neste computador (Mac com chip Intel). "
+                        "Use uma música sua: --trilha-arquivo \"<música.mp3>\" (na receita: trilha=arquivo).")
     if estilo not in ESTILOS:
         raise CortaErro(f"Trilha '{estilo}' não existe. Estilos: {', '.join(ESTILOS)}")
     if not SF2.exists():

@@ -102,6 +102,8 @@ def diagnostico() -> bool:
          f"não conectada — para usar voz, no Terminal: {COMANDO_CHAVE}")
     trilha_sf2 = RAIZ_PLUGIN / "assets" / "musica" / "GeneralUser-GS.sf2"
     item("Instrumentos da trilha", trilha_sf2.exists(), "", "atualize ou reinstale o plugin (claude plugin update cortai@cortai)")
+    item("Trilha composta (opcional)", True, "disponível" if importlib.util.find_spec("tinysoundfont") else
+         "indisponível neste computador (Mac Intel): use uma música sua com trilha=arquivo")
 
     if platform.system() == "Windows" and "onedrive" in str(Path.cwd()).lower():
         item("Pasta no OneDrive", False, str(Path.cwd()),

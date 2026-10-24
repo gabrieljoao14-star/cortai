@@ -63,8 +63,12 @@ def amostra() -> bool:
                                           "props": {"de": 0, "ate": 100, "sufixo": "%", "rotulo": "mais rápido"}}]})
         else:
             log("   (motion não instalado: pulando o teste de efeito)")
+        import importlib.util
+        trilha = "corporativo" if importlib.util.find_spec("tinysoundfont") else None
+        if not trilha:
+            log("   (trilha composta indisponível neste computador: pulando o teste de trilha)")
         legendado = legendar(editado, estilo="creator-bold", gancho="Edite sem perder tempo | Veja como",
-                             cta="Siga para mais", barra=True, sons="poucos", trilha="corporativo", efeitos=fx)
+                             cta="Siga para mais", barra=True, sons="poucos", trilha=trilha, efeitos=fx)
         log("6/7 formato 4:5 com zoom (sem rosto na amostra: enquadra no centro)")
         zoom = montar(video, takes=job / "takes.json", formato="4:5", enquadrar="rosto", zoom="normal",
                       saida=video.with_name("amostra (zoom 4x5).mp4"))
