@@ -1,0 +1,3 @@
+MODNet (portrait matting), ONNX export by Xenova: https://huggingface.co/Xenova/modnet
+Original: https://github.com/ZHKKKe/MODNet
+License: Apache License 2.0

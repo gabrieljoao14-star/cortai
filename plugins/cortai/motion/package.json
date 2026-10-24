@@ -1,0 +1,21 @@
+{
+  "name": "corta-motion",
+  "version": "0.6.0",
+  "description": "Efeitos de motion do Cortaí (Remotion): palavra gigante, lista, contador, nome e cargo, manchetes, gráfico, seta e círculo, emoji.",
+  "private": true,
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@remotion/cli": "4.0.454",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "remotion": "4.0.454"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.7",
+    "typescript": "5.9.3"
+  },
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts"
+  }
+}

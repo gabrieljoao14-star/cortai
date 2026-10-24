@@ -1,0 +1,849 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Cortaí</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500..900&family=Instrument+Sans:wght@400..700&family=JetBrains+Mono:wght@400;600&family=Montserrat:wght@700;900&family=Poppins:wght@900&family=Anton&family=Luckiest+Guy&family=DM+Sans:wght@500;700&family=Playfair+Display:ital,wght@1,700&family=Courier+Prime:wght@700&display=swap">
+<style>
+/* Layout: barra de abas no topo; cada modo é um formulário curto à esquerda e a receita fixa à direita
+   (no celular, a receita vem embaixo). Visual da proposta: mesa de edição escura, luz de tungstênio. */
+:root{
+  --bg:#0F1118; --panel:#171A23; --panel-2:#1E2230; --line:#2A2F3F;
+  --fg:#ECEDF1; --muted:#9097AA;
+  --key:#FFB547; --key-ink:#1A1205; --key-text:#FFC266;
+  --t-editar:#FFB547; --t-cortes:#FF7D93; --t-anim:#A495FF; --t-inst:#4FC1B0;
+  --ok:#57D38C; --bad:#FF7D7D;
+  /* imagem de vídeo: igual nos dois temas */
+  --frame-a:#434a57; --frame-b:#15171d; --skin-a:#8a7a6c; --skin-b:#5b5048;
+  --f-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --f-body:"Instrument Sans","Helvetica Neue",Arial,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  --r:12px; color-scheme:dark;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#F2F3F6; --panel:#FFFFFF; --panel-2:#F6F7FA; --line:#DCDFE7; --fg:#141720; --muted:#566074;
+    --key:#FFB040; --key-ink:#1A1205; --key-text:#9A5B00;
+    --t-editar:#B87100; --t-cortes:#D2445F; --t-anim:#6A55E0; --t-inst:#1E9483;
+    --ok:#1F9A55; --bad:#C23B3B; color-scheme:light;
+  }
+}
+:root[data-theme="light"]{
+  --bg:#F2F3F6; --panel:#FFFFFF; --panel-2:#F6F7FA; --line:#DCDFE7; --fg:#141720; --muted:#566074;
+  --key:#FFB040; --key-ink:#1A1205; --key-text:#9A5B00;
+  --t-editar:#B87100; --t-cortes:#D2445F; --t-anim:#6A55E0; --t-inst:#1E9483;
+  --ok:#1F9A55; --bad:#C23B3B; color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0; background:var(--bg); color:var(--fg); font-family:var(--f-body); font-size:16px; line-height:1.55;
+  padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px)); padding-block:0 64px}
+body::before{content:""; position:fixed; inset:0 0 auto; height:env(safe-area-inset-top, 0px); z-index:10; background:var(--bg)}
+.wrap{max-width:1160px; margin:0 auto}
+h1,h2,h3{font-family:var(--f-display); text-wrap:balance; margin:0; line-height:1.12}
+h2{font-size:clamp(24px,3vw,32px); font-weight:800; font-stretch:112%; letter-spacing:-.01em}
+h3{font-size:18px; font-weight:700; font-stretch:105%}
+p{margin:0; max-width:66ch}
+.muted{color:var(--muted)}
+.small{font-size:13.5px; color:var(--muted)}
+.eyebrow{font-family:var(--f-mono); font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
+code{font-family:var(--f-mono); font-size:.86em; background:var(--panel-2); border:1px solid var(--line); border-radius:5px; padding:1px 5px; word-break:break-word}
+button{font:inherit; color:inherit}
+:focus-visible{outline:2px solid var(--key); outline-offset:2px}
+
+/* topo */
+.top{position:sticky; top:env(safe-area-inset-top, 0px); z-index:5; background:var(--bg); border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:18px; padding-block:12px; flex-wrap:wrap}
+.logo{font-family:var(--f-display); font-weight:900; font-stretch:125%; font-size:26px; letter-spacing:-.02em; background:none; border:0; padding:0; cursor:pointer}
+.logo span{color:var(--key)}
+.tabs{display:flex; gap:4px; flex-wrap:wrap}
+.tab{background:none; border:1px solid transparent; border-radius:8px; padding:6px 12px; font-size:14.5px; color:var(--muted); cursor:pointer; display:flex; align-items:center; gap:7px}
+.tab:hover{color:var(--fg)}
+.tab[aria-current="page"]{color:var(--fg); background:var(--panel); border-color:var(--line)}
+.tab .dot{width:8px; height:8px; border-radius:50%}
+
+/* início */
+.hero{padding-block:44px 28px; display:flex; flex-direction:column; gap:14px}
+.mark{font-family:var(--f-display); font-weight:900; font-stretch:125%; font-size:clamp(52px,9vw,96px); letter-spacing:-.03em; line-height:.9}
+.mark span{color:var(--key)}
+.slogan{font-family:var(--f-mono); font-size:13px; letter-spacing:.1em; text-transform:uppercase; color:var(--key-text); margin:0}
+.tagline{font-family:var(--f-display); font-weight:500; font-size:clamp(19px,2.3vw,24px); max-width:34ch}
+.modes{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px}
+@media (max-width:980px){.modes{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.modes{grid-template-columns:1fr}}
+.mode{background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:20px; text-align:left; cursor:pointer;
+  display:flex; flex-direction:column; gap:10px; min-width:0; position:relative; overflow:hidden; transition:border-color .15s, transform .15s}
+.mode:hover{border-color:var(--c); transform:translateY(-2px)}
+.mode::before{content:""; position:absolute; inset:0 0 auto 0; height:4px; background:var(--c)}
+.mode .ic{width:44px; height:44px; border-radius:10px; background:var(--panel-2); display:flex; align-items:center; justify-content:center; color:var(--c)}
+.mode p{color:var(--muted); font-size:14.5px}
+.mode .go{margin-top:auto; font-weight:600; color:var(--c); font-size:14.5px}
+.how{margin-top:40px; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px}
+@media (max-width:860px){.how{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:480px){.how{grid-template-columns:1fr}}
+.how div{border-top:3px solid var(--line); padding-top:12px; display:flex; flex-direction:column; gap:5px}
+.how b{font-family:var(--f-display); font-stretch:110%; font-size:15.5px}
+.how span{font-size:14px; color:var(--muted)}
+.how .n{font-family:var(--f-mono); color:var(--key-text); font-size:12px}
+.gal{margin-top:40px; display:flex; flex-direction:column; gap:14px}
+.gal-row{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px}
+@media (max-width:860px){.gal-row{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.vid{aspect-ratio:9/16; max-width:100%; border-radius:10px; border:1px dashed var(--line); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
+  color:var(--muted); font-size:12.5px; text-align:center; padding:12px; background:repeating-linear-gradient(135deg,var(--panel) 0 12px,var(--panel-2) 12px 24px)}
+.vid b{color:var(--fg); font-size:14px}
+
+/* modo: formulário + receita */
+.page{padding-top:28px; display:flex; flex-direction:column; gap:20px}
+.page-head{display:flex; flex-direction:column; gap:8px}
+.page-head .tag{display:inline-flex; align-items:center; gap:8px; font-family:var(--f-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--c)}
+.split{display:grid; grid-template-columns:minmax(0,1fr) 380px; gap:22px; align-items:start}
+@media (max-width:980px){.split{grid-template-columns:1fr}}
+.form{display:flex; flex-direction:column; gap:14px; min-width:0}
+.q{background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:18px 20px; display:flex; flex-direction:column; gap:12px; min-width:0}
+.qh{display:flex; align-items:baseline; gap:12px}
+.qh .num{font-family:var(--f-display); font-weight:800; font-stretch:120%; font-size:20px; color:var(--c); min-width:18px}
+.qh h3{font-size:17.5px}
+.qh .hint{margin-left:auto; font-size:13px; color:var(--muted); text-align:right}
+.opts{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px}
+.opt{background:var(--panel-2); border:1.5px solid var(--line); border-radius:10px; padding:10px 12px; text-align:left; cursor:pointer; display:flex; flex-direction:column; gap:2px; min-width:0}
+.opt:hover{border-color:var(--muted)}
+.opt b{font-size:14.5px; font-weight:650}
+.opt span{font-size:12.5px; color:var(--muted); line-height:1.35}
+.opt[aria-pressed="true"]{border-color:var(--key); background:color-mix(in srgb, var(--key) 14%, var(--panel-2))}
+.opt .auto{font-family:var(--f-mono); font-size:10px; letter-spacing:.06em; color:var(--key-text); text-transform:uppercase}
+.toggles{display:flex; flex-direction:column; gap:6px}
+.sw{display:flex; align-items:center; gap:12px; background:none; border:0; padding:4px 0; cursor:pointer; text-align:left; font-size:15px}
+.sw .k{width:36px; height:20px; border-radius:99px; background:var(--line); position:relative; flex:none; transition:background .15s}
+.sw .k::after{content:""; position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:var(--fg); transition:transform .15s}
+.sw[aria-checked="true"] .k{background:var(--key)}
+.sw[aria-checked="true"] .k::after{transform:translateX(16px); background:var(--key-ink)}
+.sw small{display:block; color:var(--muted); font-size:12.5px}
+textarea,input[type=text],select{font:inherit; font-size:15px; color:var(--fg); background:var(--panel-2); border:1px solid var(--line); border-radius:9px; padding:10px 12px; width:100%}
+textarea{min-height:84px; resize:vertical}
+input[type=color]{width:44px; height:36px; border:1px solid var(--line); border-radius:8px; background:var(--panel-2); padding:2px; cursor:pointer}
+details.more{background:var(--panel); border:1px solid var(--line); border-radius:var(--r)}
+details.more summary{cursor:pointer; padding:14px 20px; font-weight:600; list-style:none; display:flex; justify-content:space-between; gap:10px}
+details.more summary::-webkit-details-marker{display:none}
+details.more summary::after{content:"+"; font-family:var(--f-mono); color:var(--muted)}
+details.more[open] summary::after{content:"–"}
+details.more .in{padding:0 20px 18px; display:flex; flex-direction:column; gap:16px}
+.row{display:flex; flex-wrap:wrap; gap:10px 18px; align-items:center}
+.lab{font-size:13px; color:var(--muted); display:flex; flex-direction:column; gap:5px; min-width:0}
+
+/* galeria de legendas */
+.caps{display:grid; grid-template-columns:repeat(auto-fill,minmax(132px,1fr)); gap:8px}
+.cap{background:var(--panel-2); border:1.5px solid var(--line); border-radius:10px; padding:0; cursor:pointer; overflow:hidden; display:flex; flex-direction:column; text-align:left; min-width:0}
+.cap[aria-pressed="true"]{border-color:var(--key)}
+.cap .fr{aspect-ratio:4/3; display:flex; align-items:center; justify-content:center; padding:8px; position:relative;
+  background:radial-gradient(ellipse 30% 42% at 50% 22%, var(--skin-a) 0%, var(--skin-b) 48%, transparent 49%), linear-gradient(180deg,var(--frame-a),var(--frame-b))}
+.cap .nm{padding:7px 9px 8px; font-size:13px; font-weight:600; line-height:1.25}
+.cap .nm small{display:block; font-weight:400; color:var(--muted); font-size:11.5px}
+.capx{display:flex; flex-wrap:wrap; justify-content:center; align-items:baseline; gap:0 .26em; text-align:center; line-height:1.1; color:#fff; max-width:100%}
+.capx .w{display:inline-block; padding:0 .1em; border-radius:.16em}
+.sk{-webkit-text-stroke:var(--sk) #000; paint-order:stroke fill}
+
+/* efeitos */
+.fx{display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:8px}
+.fx .opt{flex-direction:row; gap:10px; align-items:flex-start}
+.fx .opt .tick{width:18px; height:18px; border-radius:5px; border:1.5px solid var(--muted); flex:none; margin-top:2px; display:flex; align-items:center; justify-content:center}
+.fx .opt[aria-pressed="true"] .tick{background:var(--key); border-color:var(--key)}
+.fx .opt[aria-pressed="true"] .tick::after{content:""; width:8px; height:4px; border:2px solid var(--key-ink); border-top:0; border-right:0; transform:rotate(-45deg) translate(1px,-1px)}
+
+/* painel da receita */
+.out{position:sticky; top:calc(env(safe-area-inset-top, 0px) + 76px); background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:18px; display:flex; flex-direction:column; gap:14px; min-width:0}
+@media (max-width:980px){.out{position:static}}
+.prev{display:flex; gap:14px; align-items:center}
+.phone{width:118px; flex:none; aspect-ratio:9/16; border-radius:14px; border:4px solid var(--line); position:relative; overflow:hidden;
+  background:radial-gradient(ellipse 34% 20% at 50% 34%, var(--skin-a) 0%, var(--skin-b) 48%, transparent 49%), linear-gradient(180deg,var(--frame-a),var(--frame-b))}
+.phone.anim{background:linear-gradient(160deg,#1a1c25,#101114)}
+.phone .pc{position:absolute; left:4%; right:4%; display:flex; justify-content:center; font-size:9px}
+.phone .fxb{position:absolute; top:12%; left:50%; transform:translateX(-50%); font-family:var(--f-display); font-weight:900; font-size:15px; color:#FFE14D; -webkit-text-stroke:2px #000; paint-order:stroke fill; white-space:nowrap}
+.phone .scene{position:absolute; inset:28% 10% auto; font-family:'Montserrat',sans-serif; font-weight:900; color:#fff; font-size:13px; line-height:1.05; text-transform:uppercase}
+.phone .scene i{font-style:normal; color:#FFE14D}
+.sum{display:flex; flex-direction:column; gap:4px; font-size:13.5px; min-width:0}
+.sum div{display:flex; gap:6px}
+.sum span{color:var(--muted); flex:none}
+.sum b{font-weight:600; overflow-wrap:anywhere}
+.copy{background:var(--key); color:var(--key-ink); border:0; border-radius:10px; padding:13px 16px; font-weight:700; font-size:16px; cursor:pointer; width:100%}
+.copy:active{transform:translateY(1px)}
+.ghost{background:var(--panel-2); border:1px solid var(--line); border-radius:9px; padding:8px 12px; font-size:14px; cursor:pointer}
+pre.rec{margin:0; font-family:var(--f-mono); font-size:11.5px; line-height:1.55; background:var(--bg); border:1px solid var(--line); border-radius:9px; padding:12px; white-space:pre-wrap; word-break:break-word; max-height:240px; overflow:auto}
+.steps{margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:8px; counter-reset:s}
+.steps li{display:grid; grid-template-columns:26px minmax(0,1fr); gap:8px; font-size:14px; counter-increment:s}
+.steps li::before{content:counter(s); width:22px; height:22px; border-radius:50%; background:var(--panel-2); border:1px solid var(--line); font-family:var(--f-mono); font-size:11.5px; display:flex; align-items:center; justify-content:center; color:var(--key-text)}
+.tip{font-size:13px; color:var(--muted); border-top:1px solid var(--line); padding-top:12px; display:flex; flex-direction:column; gap:6px}
+.tip b{color:var(--fg); font-weight:600}
+.status{font-size:13px; color:var(--ok); min-height:1.2em}
+.save{display:flex; gap:8px}
+.save input{flex:1; min-width:0; padding:8px 10px; font-size:14px}
+
+/* instalar */
+.inst{display:flex; flex-direction:column; gap:14px; max-width:860px}
+.istep{background:var(--panel); border:1px solid var(--line); border-radius:var(--r); display:grid; grid-template-columns:54px minmax(0,1fr); overflow:hidden}
+.istep .sn{font-family:var(--f-display); font-weight:800; font-stretch:120%; font-size:22px; color:var(--t-inst); padding:18px 0 0 20px}
+.istep .sb{padding:18px 20px 18px 0; display:flex; flex-direction:column; gap:8px; min-width:0}
+.istep .sb p{color:var(--muted); font-size:15px}
+.code{position:relative}
+.code pre{margin:0; font-family:var(--f-mono); font-size:12.5px; line-height:1.6; background:var(--bg); border:1px solid var(--line); border-radius:9px; padding:14px; padding-right:96px; white-space:pre-wrap; word-break:break-word}
+.code .ghost{position:absolute; top:8px; right:8px; background:var(--key); color:var(--key-ink); border:0; font-weight:700}
+.os{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px}
+@media (max-width:640px){.os{grid-template-columns:1fr}}
+
+/* templates */
+.tpls{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px}
+.tpl{background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:16px; display:flex; flex-direction:column; gap:8px; min-width:0}
+.tpl .meta{font-size:12.5px; color:var(--muted)}
+.tpl .acts{display:flex; gap:8px; margin-top:auto}
+.empty{background:var(--panel); border:1px dashed var(--line); border-radius:var(--r); padding:28px; display:flex; flex-direction:column; gap:8px; max-width:640px}
+
+@media (prefers-reduced-motion: reduce){*{transition:none!important; animation:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <button class="logo" data-go="inicio" aria-label="Cortaí, início">Corta<span>í</span></button>
+    <nav class="tabs" aria-label="Seções">
+      <button class="tab" data-go="editar"><span class="dot" style="background:var(--t-editar)"></span>Editar</button>
+      <button class="tab" data-go="cortes"><span class="dot" style="background:var(--t-cortes)"></span>Cortes</button>
+      <button class="tab" data-go="animacao"><span class="dot" style="background:var(--t-anim)"></span>Só animação</button>
+      <button class="tab" data-go="instalar"><span class="dot" style="background:var(--t-inst)"></span>Instalar</button>
+      <button class="tab" data-go="templates">Meus templates</button>
+    </nav>
+  </header>
+
+  <!-- INÍCIO -->
+  <main id="v-inicio" class="view">
+    <section class="hero">
+      <div class="mark">Corta<span>í</span></div>
+      <p class="slogan">Edição, cortes e viralização com IA</p>
+      <p class="tagline">Escolha a edição, copie a receita e cole no Claude Code. Ele edita seus vídeos no seu computador.</p>
+      <p class="small">Mac e Windows · precisa do Claude Code com plano pago · instale uma vez na aba Instalar</p>
+    </section>
+    <div class="modes">
+      <button class="mode" data-go="editar" style="--c:var(--t-editar)">
+        <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12"/></svg></span>
+        <h3>Editar meus vídeos</h3>
+        <p>Tira silêncio e erros de fala, coloca legenda, animações e música. Um vídeo ou vários de uma vez.</p>
+        <span class="go">Começar →</span>
+      </button>
+      <button class="mode" data-go="cortes" style="--c:var(--t-cortes)">
+        <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="6" width="12" height="12" rx="2"/><rect x="17" y="4" width="5" height="9" rx="1"/><rect x="17" y="15" width="5" height="5" rx="1"/></svg></span>
+        <h3>Cortes de vídeo longo</h3>
+        <p>Live, aula ou podcast vira vários vídeos curtos em pé. O Claude acha os melhores trechos.</p>
+        <span class="go">Começar →</span>
+      </button>
+      <button class="mode" data-go="animacao" style="--c:var(--t-anim)">
+        <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3l2.4 5.2L20 9l-4 4 1 6-5-2.8L7 19l1-6-4-4 5.6-.8z"/></svg></span>
+        <h3>Só animação</h3>
+        <p>Vídeo inteiro animado, sem você aparecer. Com voz de IA (ElevenLabs) ou a sua voz gravada.</p>
+        <span class="go">Começar →</span>
+      </button>
+      <button class="mode" data-go="instalar" style="--c:var(--t-inst)">
+        <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v12M7 10l5 5 5-5M4 19h16"/></svg></span>
+        <h3>Instalar</h3>
+        <p>Faça uma vez em cada computador. Um texto para colar e o Claude instala tudo sozinho.</p>
+        <span class="go">Ver como →</span>
+      </button>
+    </div>
+    <div class="how" aria-label="Como funciona">
+      <div><span class="n">passo 1</span><b>Escolha</b><span>Responda até 4 perguntas. Na dúvida, deixe no Automático.</span></div>
+      <div><span class="n">passo 2</span><b>Copie a receita</b><span>Um texto pronto com tudo o que você escolheu.</span></div>
+      <div><span class="n">passo 3</span><b>Cole no Claude Code</b><span>Numa conversa nova, e arraste a pasta com os vídeos.</span></div>
+      <div><span class="n">passo 4</span><b>Receba conferido</b><span>O vídeo pronto aparece na mesma pasta, já conferido.</span></div>
+    </div>
+    <section class="gal">
+      <h2>Exemplos</h2>
+      <div class="gal-row">
+        <div class="vid"><b>Reels falado</b>vídeo de exemplo em breve</div>
+        <div class="vid"><b>Criativo com animação</b>vídeo de exemplo em breve</div>
+        <div class="vid"><b>Corte de live</b>vídeo de exemplo em breve</div>
+        <div class="vid"><b>Só animação</b>vídeo de exemplo em breve</div>
+      </div>
+    </section>
+  </main>
+
+  <!-- EDITAR -->
+  <main id="v-editar" class="view page" style="--c:var(--t-editar)" hidden>
+    <div class="page-head"><span class="tag"><span class="dot" style="width:8px;height:8px;border-radius:50%;background:var(--c)"></span>Editar meus vídeos</span>
+      <h2>Vídeo de você falando, pronto para postar</h2></div>
+    <div class="split">
+      <div class="form">
+        <div class="q"><div class="qh"><span class="num">1</span><h3>Quantos vídeos?</h3></div>
+          <div class="opts" data-k="e.qtd">
+            <button class="opt" data-v="um"><b>Um vídeo</b><span>Coloque o vídeo numa pasta</span></button>
+            <button class="opt" data-v="varios"><b>Vários de uma vez</b><span>Todos os vídeos na mesma pasta</span></button>
+          </div>
+          <div id="e-lote" class="opts" data-k="e.lote" hidden>
+            <button class="opt" data-v="automatico"><span class="auto">recomendado</span><b>Automático</b><span>O Claude escolhe o melhor para cada vídeo</span></button>
+            <button class="opt" data-v="iguais"><b>Todos iguais</b><span>A mesma edição em todos</span></button>
+            <button class="opt" data-v="diferentes"><b>Cada um diferente</b><span>Para testar qual anúncio vende mais</span></button>
+          </div>
+          <div class="toggles">
+            <button class="sw" role="switch" data-k="e.silencio"><span class="k"></span><span>Tirar os silêncios<small>As pausas somem e o vídeo fica no ritmo</small></span></button>
+            <button class="sw" role="switch" data-k="e.erros"><span class="k"></span><span>Tirar os erros de fala<small>Quando você errou e falou de novo, fica só a melhor vez</small></span></button>
+          </div>
+        </div>
+
+        <div class="q"><div class="qh"><span class="num">2</span><h3>Legenda</h3><span class="hint">toque para escolher</span></div>
+          <div class="caps" data-caps="e"></div>
+          <div class="row" data-ajustes="e"></div>
+        </div>
+
+        <div class="q"><div class="qh"><span class="num">3</span><h3>Animações</h3><span class="hint">palavra gigante, números, listas</span></div>
+          <div class="opts" data-k="e.fx">
+            <button class="opt" data-v="automatico"><span class="auto">recomendado</span><b>Automático</b><span>Poucas e no momento certo</span></button>
+            <button class="opt" data-v="nao"><b>Sem animação</b><span>Mais rápido de ficar pronto</span></button>
+            <button class="opt" data-v="escolher"><b>Eu escolho</b><span>Marque as que você quer</span></button>
+          </div>
+          <div class="fx" data-fx="e" hidden></div>
+        </div>
+
+        <div class="q"><div class="qh"><span class="num">4</span><h3>Música de fundo</h3><span class="hint">abaixa sozinha quando você fala</span></div>
+          <div class="opts" data-trilha="e"></div>
+        </div>
+
+        <div class="q"><div class="qh"><h3>Algo especial nesse vídeo?</h3><span class="hint">opcional</span></div>
+          <textarea id="e-especial" data-k="e.especial" placeholder="Ex.: mostrar a foto produto.png quando eu falar do frasco · meu nome é com Y: Thaynara · não cortar a parte do depoimento"></textarea>
+          <p class="small">Fotos, logo e música que estiverem na pasta podem ser usados. Escreva o nome do arquivo.</p>
+        </div>
+
+        <details class="more"><summary>Mais opções</summary><div class="in">
+          <div class="lab">Formato<div class="opts" data-k="e.formato">
+            <button class="opt" data-v="9:16"><b>Em pé 9:16</b><span>Reels, TikTok, Shorts</span></button>
+            <button class="opt" data-v="4:5"><b>Feed 4:5</b><span>Instagram feed</span></button>
+            <button class="opt" data-v="16:9"><b>Deitado 16:9</b><span>YouTube</span></button>
+            <button class="opt" data-v="original"><b>Como gravei</b><span>Não muda o tamanho</span></button>
+          </div></div>
+          <div class="lab">Ritmo dos cortes<div class="opts" data-k="e.ritmo">
+            <button class="opt" data-v="rapido"><b>Rápido</b><span>Reels e anúncio</span></button>
+            <button class="opt" data-v="natural"><b>Natural</b><span>Aula e YouTube</span></button>
+          </div></div>
+          <div class="toggles">
+            <button class="sw" role="switch" data-k="e.zoom"><span class="k"></span><span>Zoom a cada frase<small>Parece que tem duas câmeras</small></span></button>
+            <button class="sw" role="switch" data-k="e.gancho"><span class="k"></span><span>Texto de gancho no começo<small>O Claude sugere 2 ou 3 opções</small></span></button>
+            <button class="sw" role="switch" data-k="e.sons"><span class="k"></span><span>Sons nas viradas<small>Whoosh e impacto, sem exagero</small></span></button>
+            <button class="sw" role="switch" data-k="e.barra"><span class="k"></span><span>Barra de progresso<small>Para vídeo de 30 a 90 segundos</small></span></button>
+          </div>
+          <label class="lab" for="e-cta">Chamada no final (deixe vazio para não ter)<input type="text" id="e-cta" data-k="e.cta" placeholder="Ex.: Toque em Saiba mais"></label>
+          <div class="lab">Como o Claude trabalha<div class="opts" data-k="e.aprovacao">
+            <button class="opt" data-v="conteudo"><b>Me mostra antes</b><span>Você aprova os trechos e o texto</span></button>
+            <button class="opt" data-v="direto"><b>Direto até o fim</b><span>Ele decide tudo e mostra pronto</span></button>
+          </div></div>
+        </div></details>
+      </div>
+      <aside class="out" data-out="e"></aside>
+    </div>
+  </main>
+
+  <!-- CORTES -->
+  <main id="v-cortes" class="view page" style="--c:var(--t-cortes)" hidden>
+    <div class="page-head"><span class="tag"><span class="dot" style="width:8px;height:8px;border-radius:50%;background:var(--c)"></span>Cortes de vídeo longo</span>
+      <h2>Uma live, aula ou podcast vira vários vídeos curtos</h2></div>
+    <div class="split">
+      <div class="form">
+        <div class="q"><div class="qh"><span class="num">1</span><h3>Quantos cortes?</h3></div>
+          <div class="opts" data-k="c.qtd">
+            <button class="opt" data-v="automatico"><span class="auto">recomendado</span><b>Automático</b><span>Todos os trechos bons, sem encher</span></button>
+            <button class="opt" data-v="3"><b>3 cortes</b><span>Só os melhores</span></button>
+            <button class="opt" data-v="5"><b>5 cortes</b></button>
+            <button class="opt" data-v="10"><b>10 cortes</b><span>Para vídeo de 1 hora ou mais</span></button>
+          </div>
+          <div class="lab">Tamanho de cada corte<div class="opts" data-k="c.dur">
+            <button class="opt" data-v="15-30"><b>Curto</b><span>15 a 30 s</span></button>
+            <button class="opt" data-v="25-60"><b>Médio</b><span>25 a 60 s</span></button>
+            <button class="opt" data-v="60-90"><b>Longo</b><span>1 a 1,5 min</span></button>
+          </div></div>
+        </div>
+
+        <div class="q"><div class="qh"><span class="num">2</span><h3>Como é a gravação?</h3></div>
+          <div class="opts" data-k="c.enq">
+            <button class="opt" data-v="automatico"><span class="auto">recomendado</span><b>Automático</b><span>O Claude olha e decide</span></button>
+            <button class="opt" data-v="rosto"><b>Só a pessoa</b><span>Fica no rosto de quem fala</span></button>
+            <button class="opt" data-v="tela-camera"><b>Tela + câmera</b><span>Aula com slide ou tela compartilhada</span></button>
+            <button class="opt" data-v="camera"><b>Só a câmera</b><span>Esconde a tela (documento, dado de cliente)</span></button>
+          </div>
+        </div>
+
+        <div class="q"><div class="qh"><span class="num">3</span><h3>Legenda</h3><span class="hint">a mesma em todos os cortes</span></div>
+          <div class="caps" data-caps="c"></div>
+          <div class="row" data-ajustes="c"></div>
+        </div>
+
+        <div class="q"><div class="qh"><span class="num">4</span><h3>Música de fundo</h3></div>
+          <div class="opts" data-trilha="c"></div>
+        </div>
+
+        <div class="q"><div class="qh"><h3>Algo especial nesse vídeo?</h3><span class="hint">opcional</span></div>
+          <textarea id="c-especial" data-k="c.especial" placeholder="Ex.: o assunto principal é aposentadoria · não usar a parte das perguntas do público"></textarea>
+        </div>
+
+        <details class="more"><summary>Mais opções</summary><div class="in">
+          <div class="toggles">
+            <button class="sw" role="switch" data-k="c.gancho"><span class="k"></span><span>Texto de gancho em cada corte<small>O título que prende nos primeiros segundos</small></span></button>
+            <button class="sw" role="switch" data-k="c.zoom"><span class="k"></span><span>Zoom leve a cada frase</span></button>
+            <button class="sw" role="switch" data-k="c.sons"><span class="k"></span><span>Sons nas viradas</span></button>
+            <button class="sw" role="switch" data-k="c.barra"><span class="k"></span><span>Barra de progresso</span></button>
+            <button class="sw" role="switch" data-k="c.anim"><span class="k"></span><span>Animações nos cortes<small>Palavra gigante, números, listas. Demora mais</small></span></button>
+          </div>
+          <label class="lab" for="c-cta">Chamada no final de cada corte (opcional)<input type="text" id="c-cta" data-k="c.cta" placeholder="Ex.: Assista a live completa no perfil"></label>
+          <div class="lab">Como o Claude trabalha<div class="opts" data-k="c.aprovacao">
+            <button class="opt" data-v="conteudo"><b>Me mostra antes</b><span>Você aprova a lista de cortes</span></button>
+            <button class="opt" data-v="direto"><b>Direto até o fim</b><span>Ele escolhe e corta</span></button>
+          </div></div>
+        </div></details>
+      </div>
+      <aside class="out" data-out="c"></aside>
+    </div>
+  </main>
+
+  <!-- SÓ ANIMAÇÃO -->
+  <main id="v-animacao" class="view page" style="--c:var(--t-anim)" hidden>
+    <div class="page-head"><span class="tag"><span class="dot" style="width:8px;height:8px;border-radius:50%;background:var(--c)"></span>Só animação</span>
+      <h2>Um vídeo animado inteiro, sem você aparecer</h2></div>
+    <div class="split">
+      <div class="form">
+        <div class="q"><div class="qh"><span class="num">1</span><h3>Sobre o que é o vídeo?</h3></div>
+          <div class="opts" data-k="a.modo">
+            <button class="opt" data-v="tema"><b>Tenho só o assunto</b><span>O Claude escreve o texto e te mostra</span></button>
+            <button class="opt" data-v="roteiro"><b>Já tenho o texto</b><span>Cole o que deve ser falado</span></button>
+          </div>
+          <textarea id="a-texto" data-k="a.texto" placeholder="Ex.: 3 erros de quem começa a vender online"></textarea>
+          <div class="lab">Duração<div class="opts" data-k="a.dur">
+            <button class="opt" data-v="15"><b>15 s</b></button>
+            <button class="opt" data-v="30"><b>30 s</b></button>
+            <button class="opt" data-v="60"><b>1 min</b></button>
+          </div></div>
+        </div>
+
+        <div class="q"><div class="qh"><span class="num">2</span><h3>De quem é a voz?</h3></div>
+          <div class="opts" data-k="a.voz">
+            <button class="opt" data-v="audio"><b>Minha voz</b><span>Grave no celular e coloque o áudio na pasta</span></button>
+            <button class="opt" data-v="elevenlabs"><b>Voz de IA</b><span>ElevenLabs. Precisa conectar a chave uma vez</span></button>
+          </div>
+          <label class="lab" for="a-vozn" id="a-vozbox" hidden>Nome da voz na ElevenLabs (deixe vazio e o Claude sugere)<input type="text" id="a-vozn" data-k="a.vozNome" placeholder="Ex.: Rachel"></label>
+          <p class="small" id="a-chave" hidden>Ainda não conectou? Veja "Voz de IA" na aba <button class="ghost" data-go="instalar" style="padding:2px 8px">Instalar</button>. A chave nunca vai na receita.</p>
+        </div>
+
+        <div class="q"><div class="qh"><span class="num">3</span><h3>Legenda</h3><span class="hint">some sozinha nas cenas com texto</span></div>
+          <div class="caps" data-caps="a"></div>
+          <div class="row" data-ajustes="a"></div>
+        </div>
+
+        <div class="q"><div class="qh"><span class="num">4</span><h3>Música de fundo</h3></div>
+          <div class="opts" data-trilha="a"></div>
+        </div>
+
+        <div class="q"><div class="qh"><h3>Algo especial nesse vídeo?</h3><span class="hint">opcional</span></div>
+          <textarea id="a-especial" data-k="a.especial" placeholder="Ex.: usar as fotos do produto que estão na pasta · cor da marca #2F6BFF"></textarea>
+        </div>
+
+        <details class="more"><summary>Mais opções</summary><div class="in">
+          <div class="lab">Formato<div class="opts" data-k="a.formato">
+            <button class="opt" data-v="9:16"><b>Em pé 9:16</b></button>
+            <button class="opt" data-v="4:5"><b>Feed 4:5</b></button>
+            <button class="opt" data-v="1:1"><b>Quadrado</b></button>
+            <button class="opt" data-v="16:9"><b>Deitado 16:9</b></button>
+          </div></div>
+          <label class="lab" for="a-cta">Chamada no final (opcional)<input type="text" id="a-cta" data-k="a.cta" placeholder="Ex.: Siga para mais dicas"></label>
+          <div class="lab">Como o Claude trabalha<div class="opts" data-k="a.aprovacao">
+            <button class="opt" data-v="conteudo"><b>Me mostra antes</b><span>Você aprova o texto e a voz</span></button>
+            <button class="opt" data-v="direto"><b>Direto até o fim</b></button>
+          </div></div>
+        </div></details>
+      </div>
+      <aside class="out" data-out="a"></aside>
+    </div>
+  </main>
+
+  <!-- INSTALAR -->
+  <main id="v-instalar" class="view page" style="--c:var(--t-inst)" hidden>
+    <div class="page-head"><span class="tag"><span class="dot" style="width:8px;height:8px;border-radius:50%;background:var(--c)"></span>Instalar</span>
+      <h2>Faça uma vez em cada computador</h2>
+      <p class="muted">Precisa do Claude Code com plano pago, Mac (chip Apple ou Intel) ou Windows 10/11, internet e uns 10 GB livres. Não pede senha de administrador.</p></div>
+    <div class="inst">
+      <div class="istep"><div class="sn">1</div><div class="sb"><h3>Abra o Claude Code</h3><p>No aplicativo ou no terminal. Comece uma conversa nova.</p></div></div>
+      <div class="istep"><div class="sn">2</div><div class="sb"><h3>Copie e cole este texto</h3>
+        <div class="code"><pre id="p-instalar"></pre><button class="ghost" data-copy="p-instalar">Copiar</button></div>
+        <p class="small">Se ele pedir permissão para rodar comandos, permita.</p></div></div>
+      <div class="istep"><div class="sn">3</div><div class="sb"><h3>Espere</h3><p>Leva de 5 a 20 minutos. Ele baixa tudo e edita um vídeo de teste sozinho. Termina quando aparecer <b>✅ TUDO CERTO</b>.</p></div></div>
+      <div class="istep"><div class="sn">4</div><div class="sb"><h3>Feche e abra o Claude Code</h3><p>Pronto. Agora é só usar as outras abas deste app.</p></div></div>
+
+      <div class="q" id="voz-ia" style="--c:var(--t-anim)"><div class="qh"><h3>Voz de IA (opcional, para Só animação)</h3></div>
+        <p class="muted">1. Crie uma conta em elevenlabs.io e copie sua chave em <b>Perfil → API Keys</b>.<br>2. Abra o programa abaixo, cole o comando e aperte Enter. Ele pede a chave: cole e aperte Enter (ela não aparece na tela, é normal).</p>
+        <div class="os">
+          <div class="lab">Mac: abra o app Terminal<div class="code"><pre id="p-chave-mac">~/.corta/bin/corta chave elevenlabs</pre><button class="ghost" data-copy="p-chave-mac">Copiar</button></div></div>
+          <div class="lab">Windows: abra o PowerShell<div class="code"><pre id="p-chave-win">&amp; "$env:USERPROFILE\.corta\bin\corta.cmd" chave elevenlabs</pre><button class="ghost" data-copy="p-chave-win">Copiar</button></div></div>
+        </div>
+        <p class="small">A chave fica guardada só no seu computador. Nunca cole a chave numa conversa com o Claude.</p>
+      </div>
+
+      <div class="q"><div class="qh"><h3>Deu algum problema?</h3></div>
+        <p class="muted">No Claude Code, digite <code>/cortai:diagnostico</code> e aperte Enter. Ele confere tudo e diz como consertar em português simples.</p></div>
+
+      <div class="q"><div class="qh"><h3>Atualizar para a versão nova</h3></div>
+        <div class="code"><pre id="p-atualizar"></pre><button class="ghost" data-copy="p-atualizar">Copiar</button></div></div>
+      <p class="status" id="st-inst" role="status"></p>
+    </div>
+  </main>
+
+  <!-- TEMPLATES -->
+  <main id="v-templates" class="view page" hidden>
+    <div class="page-head"><span class="tag" style="color:var(--key-text)">Meus templates</span>
+      <h2>Suas edições salvas</h2>
+      <p class="muted">Monte uma edição em qualquer aba e toque em "Salvar como template". Fica guardado só neste navegador.</p></div>
+    <div id="tpl-list" class="tpls"></div>
+  </main>
+</div>
+
+<script>
+(() => {
+const REPO = 'gabrieljoao14-star/cortai';
+
+/* ---------- catálogo (o mesmo do motor) ---------- */
+const ESTILOS = [
+  {id:'creator-bold', nome:'Creator bold', d:'Maiúsculas grossas', f:"'Montserrat'", w:900, up:1, dest:'#FFE14D', t:'escala', sk:3, pal:3},
+  {id:'caixa-na-palavra', nome:'Caixa na palavra', d:'Fundo na palavra falada', f:"'Montserrat'", w:900, up:1, dest:'#7C3AED', t:'caixa', sk:0, pal:3, pos:'centro'},
+  {id:'karaoke', nome:'Karaokê', d:'A palavra muda de cor', f:"'Poppins'", w:900, up:0, dest:'#22D3EE', t:'cor', sk:2.5, pal:5},
+  {id:'hierarquia', nome:'Hierarquia', d:'Palavra-chave enorme', f:"'Montserrat'", w:900, up:1, dest:'#FFE14D', t:'hier', sk:2.5, pal:4},
+  {id:'com-emoji', nome:'Com emoji', d:'Emoji nas palavras-chave', f:"'Montserrat'", w:900, up:1, dest:'#FFE14D', t:'cor', sk:3, pal:3, emoji:1},
+  {id:'palavra-unica', nome:'Palavra única', d:'Uma palavra por vez', f:"'Anton'", w:400, up:1, dest:'#FFFFFF', t:'uma', sk:3.5, pal:1, pos:'centro'},
+  {id:'maquina-de-escrever', nome:'Máquina de escrever', d:'Aparece enquanto fala', f:"'Courier Prime'", w:700, up:0, dest:'#FFE14D', t:'maq', sk:0, pal:5},
+  {id:'editorial', nome:'Editorial', d:'Chave em itálico elegante', f:"'DM Sans'", w:700, up:0, dest:'#F2D49B', t:'edit', sk:0, pal:4},
+  {id:'faixa-de-fundo', nome:'Faixa de fundo', d:'Como o texto do TikTok', f:"'DM Sans'", w:700, up:0, dest:'#FFFFFF', t:'faixa', sk:0, pal:4},
+  {id:'cartoon', nome:'Cartoon', d:'Divertido, contorno grosso', f:"'Luckiest Guy'", w:400, up:1, dest:'#FFD400', t:'cor', sk:4.5, pal:2, pos:'centro'},
+  {id:'neon', nome:'Neon', d:'Brilho, noite e games', f:"'Poppins'", w:900, up:0, dest:'#FFFFFF', t:'neon', sk:0, pal:3},
+  {id:'minimal', nome:'Minimal', d:'Limpo, só sombra', f:"'DM Sans'", w:500, up:-1, dest:'#FFFFFF', t:'sub', sk:0, pal:4},
+  {id:'classica', nome:'Clássica', d:'Frase inteira, vídeo longo', f:"'Montserrat'", w:700, up:0, dest:'#FFFFFF', t:'nenhum', sk:1.5, pal:6},
+];
+const AUTO_LEG = {id:'automatico', nome:'Automático', d:'Escolhe pelo assunto'};
+const SEM_LEG = {id:'nenhuma', nome:'Sem legenda', d:'Só o vídeo'};
+const TRILHAS = [
+  ['automatico','Automático','Combina com o assunto'], ['emocional','Emocional','Piano, história, saúde'],
+  ['corporativo','Corporativo','Produto, empresa'], ['tensao','Tensão','Alerta, prazo, golpe'],
+  ['lofi','Lo-fi','Calmo, rotina, estudo'], ['epico','Épico','Conquista, lançamento'],
+  ['energia','Energia','Vendas, dicas, fitness'], ['arquivo','Minha música','Coloque a música na pasta'], ['nao','Sem música','']];
+const EFEITOS = [
+  ['palavra-gigante','Palavra gigante','A palavra-chave toma a tela'],
+  ['atras','Palavra atrás de você','A palavra fica atrás da pessoa'],
+  ['contador','Número contando','R$ 0 → R$ 7.000 na hora que fala'],
+  ['lista','Lista','Itens aparecendo um a um'],
+  ['grafico','Gráfico','Antes e depois, comparação'],
+  ['nome-cargo','Nome e profissão','Faixa com seu nome'],
+  ['imagem','Foto da pasta','Produto ou print na hora certa'],
+  ['emoji','Emoji','Na emoção ou no alerta'],
+  ['seta-circulo','Seta e círculo','Aponta algo na tela'],
+  ['manchetes','Manchetes','Notícias de verdade sobre o assunto']];
+
+/* ---------- estado ---------- */
+const PADRAO = {
+  e:{qtd:'um', lote:'automatico', silencio:true, erros:true, leg:'automatico', aj:{}, fx:'automatico', fxSel:['palavra-gigante','contador'],
+     trilha:'automatico', especial:'', formato:'9:16', ritmo:'rapido', zoom:true, gancho:true, sons:true, barra:false, cta:'', aprovacao:'conteudo'},
+  c:{qtd:'automatico', dur:'25-60', enq:'automatico', leg:'automatico', aj:{}, trilha:'automatico', especial:'', gancho:true, zoom:true,
+     sons:true, barra:false, anim:false, cta:'', aprovacao:'conteudo'},
+  a:{modo:'tema', texto:'', dur:'30', voz:'audio', vozNome:'', leg:'automatico', aj:{}, trilha:'automatico', especial:'', formato:'9:16',
+     cta:'', aprovacao:'conteudo'}};
+const S = JSON.parse(JSON.stringify(PADRAO));
+const clone = o => JSON.parse(JSON.stringify(o));
+const loja = {
+  ler(k, pad){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : pad }catch(e){ return pad } },
+  gravar(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)) }catch(e){} }
+};
+const est = id => ESTILOS.find(x => x.id === id);
+
+/* ---------- desenho das legendas (prévia em HTML do que o motor desenha) ---------- */
+function legendaHTML(id, px, ativa, aj){
+  const e = est(id); if(!e) return '';
+  aj = aj || {};
+  const dest = aj.destaque || e.dest;
+  const up = e.up === 1 ? 'uppercase' : e.up === -1 ? 'lowercase' : 'none';
+  const base = `font-family:${e.f},sans-serif;font-weight:${e.w};font-size:${px}px;text-transform:${up};`;
+  const sk = e.sk ? `--sk:${(e.sk * px / 22).toFixed(1)}px` : '';
+  const ws = ['isso','muda','tudo'];
+  const w = (t, i) => {
+    const on = i === ativa;
+    let st = '';
+    if(on && e.t === 'cor') st = `color:${dest}`;
+    if(on && e.t === 'escala') st = `color:${dest};transform:rotate(-3deg) scale(1.12)`;
+    if(on && e.t === 'caixa') st = `background:${dest};color:${contraste(dest)}`;
+    if(on && e.t === 'sub') st = `box-shadow:inset 0 -.12em 0 ${dest}`;
+    return `<span class="w${e.sk ? ' sk' : ''}" style="${st}">${t}</span>`;
+  };
+  if(e.t === 'uma') return `<div class="capx" style="${base}${sk}"><span class="w sk">${ws[ativa]}</span></div>`;
+  if(e.t === 'hier') return `<div class="capx" style="${base}${sk};flex-direction:column;align-items:center;line-height:1">
+    <span class="w sk" style="font-size:.6em">isso muda</span><span class="w sk" style="font-size:1.45em;color:${dest}">tudo</span></div>`;
+  if(e.t === 'edit') return `<div class="capx" style="${base}text-shadow:0 2px 10px rgba(0,0,0,.7)"><span class="w">isso muda</span>
+    <span class="w" style="font-family:'Playfair Display',serif;font-style:italic;font-size:1.15em;color:${dest}">tudo</span></div>`;
+  if(e.t === 'maq'){ const vis = ws.slice(0, ativa + 1);
+    return `<div class="capx" style="${base}"><span style="background:#111;padding:.1em .35em;border-radius:.2em">${vis.map((t,i)=> i===ativa?`<span style="color:${dest}">${t}</span>`:t).join(' ')}▌</span></div>`; }
+  if(e.t === 'faixa') return `<div class="capx" style="${base}"><span style="background:#fff;color:#111;padding:.1em .4em;border-radius:.25em">isso muda tudo</span></div>`;
+  if(e.t === 'neon') return `<div class="capx" style="${base}color:#F5D0FE;text-shadow:0 0 .25em #D946EF,0 0 .7em #D946EF">${ws.map((t,i)=>`<span class="w" style="${i===ativa?'color:#fff':''}">${t}</span>`).join('')}</div>`;
+  if(e.t === 'nenhum') return `<div class="capx" style="${base}${sk}">${ws.map(t=>`<span class="w sk">${t}</span>`).join('')}<span class="w sk">no seu vídeo</span></div>`;
+  const emo = e.emoji ? `<div style="width:100%;text-align:center;font-size:1.3em;line-height:1.1">💰</div>` : '';
+  return `<div class="capx" style="${base}${sk}">${emo}${ws.map(w).join('')}</div>`;
+}
+function contraste(hex){ const h = hex.replace('#',''); const r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16);
+  return (.299*r + .587*g + .114*b) > 150 ? '#111' : '#fff'; }
+
+/* ---------- montar os controles ---------- */
+function montarLegendas(fl){
+  const box = document.querySelector(`[data-caps="${fl}"]`);
+  const lista = [AUTO_LEG, ...ESTILOS, SEM_LEG];
+  box.innerHTML = lista.map(e => {
+    let fr;
+    if(e.id === 'automatico') fr = `<div style="font-family:var(--f-display);font-weight:900;font-stretch:120%;color:#FFC266;font-size:18px">AUTO</div>`;
+    else if(e.id === 'nenhuma') fr = `<div style="color:#9097AA;font-size:13px">sem legenda</div>`;
+    else fr = legendaHTML(e.id, 17, 1);
+    const pos = e.pos === 'centro' || e.id === 'automatico' || e.id === 'nenhuma' ? '' : 'align-items:flex-end;padding-bottom:12px;';
+    return `<button class="cap" data-leg="${e.id}" aria-pressed="false"><span class="fr" style="${pos}">${fr}</span><span class="nm">${e.nome}<small>${e.d}</small></span></button>`;
+  }).join('');
+  box.addEventListener('click', ev => { const b = ev.target.closest('[data-leg]'); if(!b) return;
+    S[fl].leg = b.dataset.leg; S[fl].aj = {}; pintar(fl); });
+}
+function montarAjustes(fl){
+  const box = document.querySelector(`[data-ajustes="${fl}"]`);
+  box.innerHTML = `<label class="lab" for="${fl}-dest">Cor de destaque<span class="row" style="gap:8px"><input type="color" id="${fl}-dest"><button class="ghost" id="${fl}-dest0">Padrão</button></span></label>
+    <label class="lab" for="${fl}-pos" style="min-width:140px">Posição<select id="${fl}-pos"><option value="">Padrão do estilo</option><option value="baixo">Embaixo</option><option value="centro">No meio</option><option value="topo">Em cima</option></select></label>
+    <label class="lab" for="${fl}-pal" style="min-width:140px">Palavras por vez<select id="${fl}-pal"><option value="">Padrão do estilo</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+    <label class="lab" for="${fl}-tam" style="min-width:140px">Tamanho da letra<select id="${fl}-tam"><option value="">Padrão do estilo</option><option value="0.85">Menor</option><option value="1.25">Maior</option><option value="1.5">Bem maior</option></select></label>`;
+  const dest = box.querySelector(`#${fl}-dest`);
+  dest.addEventListener('input', () => { S[fl].aj.destaque = dest.value.toUpperCase(); pintar(fl); });
+  box.querySelector(`#${fl}-dest0`).addEventListener('click', () => { delete S[fl].aj.destaque; pintar(fl); });
+  for(const k of ['pos','pal','tam']){ const sel = box.querySelector(`#${fl}-${k}`);
+    sel.addEventListener('change', () => { const chave = ({pos:'posicao', pal:'palavras', tam:'tamanho'})[k];
+      if(sel.value) S[fl].aj[chave] = sel.value; else delete S[fl].aj[chave]; pintar(fl); }); }
+}
+function montarTrilha(fl){
+  const box = document.querySelector(`[data-trilha="${fl}"]`);
+  box.innerHTML = TRILHAS.map(([v,n,d]) => `<button class="opt" data-v="${v}">${v==='automatico'?'<span class="auto">recomendado</span>':''}<b>${n}</b>${d?`<span>${d}</span>`:''}</button>`).join('');
+  box.dataset.k = `${fl}.trilha`;
+}
+function montarEfeitos(fl){
+  const box = document.querySelector(`[data-fx="${fl}"]`);
+  box.innerHTML = EFEITOS.map(([v,n,d]) => `<button class="opt" data-fxv="${v}" aria-pressed="false"><span class="tick"></span><span><b>${n}</b><br><span>${d}</span></span></button>`).join('');
+  box.addEventListener('click', ev => { const b = ev.target.closest('[data-fxv]'); if(!b) return;
+    const s = new Set(S[fl].fxSel); s.has(b.dataset.fxv) ? s.delete(b.dataset.fxv) : s.add(b.dataset.fxv);
+    S[fl].fxSel = EFEITOS.map(x => x[0]).filter(x => s.has(x)); pintar(fl); });
+}
+function montarPainel(fl){
+  const out = document.querySelector(`[data-out="${fl}"]`);
+  out.innerHTML = `
+    <div class="prev"><div class="phone${fl==='a'?' anim':''}" id="${fl}-phone"></div><div class="sum" id="${fl}-sum"></div></div>
+    <button class="copy" id="${fl}-copy">Copiar receita</button>
+    <p class="status" id="${fl}-st" role="status"></p>
+    <ol class="steps">
+      <li><span>Crie uma <b>pasta</b> no computador e coloque ${fl==='a'?'o áudio da sua voz e as fotos (se tiver)':fl==='c'?'o vídeo longo':'o vídeo (ou os vídeos)'} dentro.</span></li>
+      <li><span>Abra uma <b>conversa nova</b> no Claude Code.</span></li>
+      <li><span>Cole a receita (Ctrl+V no Windows, Cmd+V no Mac).</span></li>
+      <li><span><b>Arraste a pasta</b> para a conversa, logo depois do texto, e aperte Enter.</span></li>
+    </ol>
+    <details class="more" style="border:0;background:none"><summary style="padding:0">Ver a receita</summary><pre class="rec" id="${fl}-rec" style="margin-top:10px"></pre></details>
+    <div class="save"><input type="text" id="${fl}-tpln" placeholder="Nome do template" aria-label="Nome do template"><button class="ghost" id="${fl}-tpl">Salvar como template</button></div>
+    <div class="tip"><span><b>Mais rápido e gasta menos:</b> uma conversa nova para cada pasta. Até ~10 vídeos por vez. Uma edição por vez no computador.</span>
+      <span><b>Deixe o computador na tomada:</b> sem carregador ele dorme e a edição para no meio.</span>
+      <span><b>Quanto demora:</b> ${fl==='a'?'uns 5 a 10 minutos para 30 segundos de vídeo':'mais ou menos 3 vezes a duração do vídeo gravado (Windows sem placa de vídeo NVIDIA: mais)'}. Deixe o computador ligado na tomada.</span></div>`;
+  out.querySelector(`#${fl}-copy`).addEventListener('click', () => copiar(receita(fl), `${fl}-st`, 'Receita copiada. Agora abra uma conversa nova no Claude Code e cole.'));
+  out.querySelector(`#${fl}-tpl`).addEventListener('click', () => salvarTemplate(fl));
+}
+
+/* ---------- cliques genéricos ---------- */
+document.addEventListener('click', ev => {
+  const go = ev.target.closest('[data-go]'); if(go){ abrir(go.dataset.go); return; }
+  const cp = ev.target.closest('[data-copy]'); if(cp){ copiar(document.getElementById(cp.dataset.copy).textContent, 'st-inst', 'Copiado.'); return; }
+  const op = ev.target.closest('.opts [data-v]');
+  if(op){ const [fl, k] = op.parentElement.dataset.k.split('.'); S[fl][k] = op.dataset.v; pintar(fl); return; }
+  const sw = ev.target.closest('.sw[data-k]');
+  if(sw){ const [fl, k] = sw.dataset.k.split('.'); S[fl][k] = !S[fl][k]; pintar(fl); }
+});
+document.addEventListener('input', ev => {
+  const el = ev.target.closest('textarea[data-k], input[type=text][data-k]'); if(!el) return;
+  const [fl, k] = el.dataset.k.split('.'); S[fl][k] = el.value; pintar(fl, true);
+});
+
+/* ---------- desenhar o estado ---------- */
+function pintar(fl, soTexto){
+  const s = S[fl];
+  if(!soTexto){
+    document.querySelectorAll(`#v-${nomeFl(fl)} .opts[data-k]`).forEach(g => { const k = g.dataset.k.split('.')[1];
+      g.querySelectorAll('[data-v]').forEach(b => b.setAttribute('aria-pressed', String(String(s[k]) === b.dataset.v))); });
+    document.querySelectorAll(`#v-${nomeFl(fl)} .sw[data-k]`).forEach(b => b.setAttribute('aria-checked', String(!!s[b.dataset.k.split('.')[1]])));
+    document.querySelectorAll(`[data-caps="${fl}"] [data-leg]`).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.leg === s.leg)));
+    const aj = document.querySelector(`[data-ajustes="${fl}"]`);
+    aj.hidden = s.leg === 'automatico' || s.leg === 'nenhuma';
+    if(!aj.hidden){ const e = est(s.leg);
+      aj.querySelector(`#${fl}-dest`).value = (s.aj.destaque || e.dest).toLowerCase();
+      aj.querySelector(`#${fl}-pos`).value = s.aj.posicao || '';
+      aj.querySelector(`#${fl}-pal`).value = s.aj.palavras || '';
+      aj.querySelector(`#${fl}-tam`).value = s.aj.tamanho || ''; }
+    const fx = document.querySelector(`[data-fx="${fl}"]`);
+    if(fx){ fx.hidden = s.fx !== 'escolher';
+      fx.querySelectorAll('[data-fxv]').forEach(b => b.setAttribute('aria-pressed', String(s.fxSel.includes(b.dataset.fxv)))); }
+    if(fl === 'e') document.getElementById('e-lote').hidden = s.qtd !== 'varios';
+    if(fl === 'a'){ const ia = s.voz === 'elevenlabs'; document.getElementById('a-vozbox').hidden = !ia; document.getElementById('a-chave').hidden = !ia;
+      document.getElementById('a-texto').placeholder = s.modo === 'tema' ? 'Ex.: 3 erros de quem começa a vender online' : 'Cole aqui o texto que vai ser falado'; }
+    document.querySelectorAll(`#v-${nomeFl(fl)} [data-k]`).forEach(el => { if(el.matches('textarea, input[type=text]')){
+      const k = el.dataset.k.split('.')[1]; if(el.value !== s[k]) el.value = s[k]; } });
+  }
+  resumo(fl);
+  document.getElementById(`${fl}-rec`).textContent = receita(fl);
+  loja.gravar('corta.rascunho', S);
+}
+const nomeFl = fl => ({e:'editar', c:'cortes', a:'animacao'})[fl];
+
+function resumo(fl){
+  const s = S[fl];
+  const leg = s.leg === 'automatico' ? 'automática' : s.leg === 'nenhuma' ? 'sem' : est(s.leg).nome;
+  const tri = (TRILHAS.find(t => t[0] === s.trilha) || [, s.trilha])[1];
+  let linhas = [];
+  if(fl === 'e'){
+    const fx = s.fx === 'automatico' ? 'automáticas' : s.fx === 'nao' ? 'sem' : `${s.fxSel.length} escolhidas`;
+    linhas = [['Vídeos', s.qtd === 'um' ? '1' : `vários · ${({automatico:'automático', iguais:'todos iguais', diferentes:'cada um diferente'})[s.lote]}`],
+      ['Limpeza', [s.silencio && 'silêncio', s.erros && 'erros'].filter(Boolean).join(' + ') || 'nenhuma'],
+      ['Legenda', leg], ['Animações', fx], ['Música', tri]];
+  } else if(fl === 'c'){
+    linhas = [['Cortes', s.qtd === 'automatico' ? 'automático' : s.qtd], ['Tamanho', s.dur.replace('-', ' a ') + ' s'], ['Legenda', leg], ['Música', tri]];
+  } else {
+    linhas = [['Texto', s.modo === 'tema' ? 'o Claude escreve' : 'o seu'], ['Duração', s.dur === '60' ? '1 min' : s.dur + ' s'],
+      ['Voz', s.voz === 'audio' ? 'a sua' : 'IA (ElevenLabs)'], ['Legenda', leg], ['Música', tri]];
+  }
+  document.getElementById(`${fl}-sum`).innerHTML = linhas.map(([a,b]) => `<div><span>${a}:</span><b>${b}</b></div>`).join('');
+  desenharCelular(fl);
+}
+
+let tique = 0;
+function desenharCelular(fl){
+  const s = S[fl], ph = document.getElementById(`${fl}-phone`); if(!ph) return;
+  const id = s.leg === 'automatico' ? 'creator-bold' : s.leg;
+  const e = est(id);
+  let html = '';
+  if(fl === 'a') html += `<div class="scene">Você está<br>perdendo<br><i>dinheiro</i></div>`;
+  else if(fl === 'e' && s.fx !== 'nao') html += `<div class="fxb">DOBRO</div>`;
+  if(e && s.leg !== 'nenhuma'){
+    const pos = s.aj.posicao || e.pos || 'baixo';
+    const y = pos === 'topo' ? 'top:20%' : pos === 'centro' ? 'top:46%' : 'top:66%';
+    html += `<div class="pc" style="${y}">${legendaHTML(id, 11, tique % 3, s.aj)}</div>`;
+  }
+  ph.innerHTML = html;
+}
+if(!matchMedia('(prefers-reduced-motion: reduce)').matches)
+  setInterval(() => { tique++; ['e','c','a'].forEach(fl => { if(!document.getElementById(`v-${nomeFl(fl)}`).hidden) desenharCelular(fl); }); }, 650);
+
+/* ---------- receita ---------- */
+const aspas = t => '"' + String(t).replace(/"/g, "'").replace(/\s*[\r\n]+\s*/g, ' ').trim() + '"';
+function linhaLegenda(s){
+  const out = [`legenda: ${s.leg}`];
+  const aj = Object.entries(s.aj).filter(([k,v]) => v).map(([k,v]) => `${k}=${v}`);
+  if(aj.length && s.leg !== 'automatico' && s.leg !== 'nenhuma') out.push(`  ajustes: ${aj.join(' · ')}`);
+  return out;
+}
+function receita(fl){
+  const s = S[fl], L = ['/cortai:editar'];
+  if(fl === 'e'){
+    L.push('receita: cortai/1 · Editar vídeos', 'tipo: editar', `formato: ${s.formato}`,
+      `limpeza: silencio=${s.silencio ? s.ritmo : 'nao'} · erros-de-fala=${s.erros ? 'sim' : 'nao'} · voz=leve`, ...linhaLegenda(s));
+    const fx = s.fx === 'escolher' ? (s.fxSel.length ? s.fxSel.join(', ') : 'nao') : s.fx;
+    L.push(`movimento: zoom=${s.zoom ? 'normal' : 'nao'} · enquadrar=rosto · efeitos=${fx}`);
+    L.push(`acabamento: gancho=${s.gancho ? 'sugerir' : 'nao'} · cta=${s.cta.trim() ? aspas(s.cta) : 'nao'} · barra=${s.barra ? 'sim' : 'nao'} · sons=${s.sons ? 'poucos' : 'nao'} · trilha=${s.trilha}`);
+    if(s.qtd === 'varios') L.push(`lote: ${s.lote}`);
+  } else if(fl === 'c'){
+    L.push('receita: cortai/1 · Cortes de vídeo longo', 'tipo: cortes', 'formato: cortes',
+      `cortes: quantidade=${s.qtd} · duracao=${s.dur}`, ...linhaLegenda(s),
+      `movimento: enquadrar=${s.enq} · zoom=${s.zoom ? 'leve' : 'nao'} · efeitos=${s.anim ? 'automatico' : 'nao'}`,
+      `acabamento: gancho=${s.gancho ? 'sugerir' : 'nao'} · cta=${s.cta.trim() ? aspas(s.cta) : 'nao'} · barra=${s.barra ? 'sim' : 'nao'} · sons=${s.sons ? 'poucos' : 'nao'} · trilha=${s.trilha}`);
+  } else {
+    const txt = s.texto.trim() ? aspas(s.texto) : '"(pergunte para mim)"';
+    L.push('receita: cortai/1 · Só animação', 'tipo: animacao', `formato: ${s.formato}`,
+      `animacao: ${s.modo}=${txt} · duracao=${s.dur}`,
+      `voz: ${s.voz === 'audio' ? 'audio' : (s.vozNome.trim() ? 'elevenlabs=' + s.vozNome.trim().replace(/\s+/g, ' ') : 'elevenlabs')}`,
+      ...linhaLegenda(s),
+      `acabamento: sons=poucos · cta=${s.cta.trim() ? aspas(s.cta) : 'nao'} · trilha=${s.trilha}`);
+  }
+  if(s.especial.trim()) L.push(`especial: ${aspas(s.especial)}`);
+  L.push(`aprovacao: ${s.aprovacao}`, 'idioma: pt', 'pasta: ');
+  return L.join('\n');
+}
+
+/* ---------- copiar ---------- */
+function copiar(texto, stId, msg){
+  const st = document.getElementById(stId);
+  const ok = () => { st.textContent = msg; setTimeout(() => { if(st.textContent === msg) st.textContent = ''; }, 6000); };
+  const falha = () => { const ta = document.createElement('textarea'); ta.value = texto; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); let feito = false; try{ feito = document.execCommand('copy') }catch(e){}
+    ta.remove(); st.textContent = feito ? msg : 'Não consegui copiar sozinho. Abra "Ver a receita", selecione o texto e copie.'; };
+  try{ navigator.clipboard.writeText(texto).then(ok, falha) }catch(e){ falha() }
+}
+
+/* ---------- templates ---------- */
+function salvarTemplate(fl){
+  const inp = document.getElementById(`${fl}-tpln`), st = document.getElementById(`${fl}-st`);
+  const nome = inp.value.trim();
+  if(!nome){ st.textContent = 'Escreva um nome para o template antes de salvar.'; inp.focus(); return; }
+  const lista = loja.ler('corta.templates', []);
+  lista.unshift({nome, fl, s: clone(S[fl]), em: new Date().toISOString().slice(0,10)});
+  loja.gravar('corta.templates', lista.slice(0, 50));
+  inp.value = ''; st.textContent = `Template "${nome}" salvo em Meus templates.`;
+}
+function listarTemplates(){
+  const box = document.getElementById('tpl-list');
+  const lista = loja.ler('corta.templates', []);
+  if(!lista.length){ box.innerHTML = `<div class="empty"><h3>Nenhum template ainda</h3><p class="muted">Monte uma edição em Editar, Cortes ou Só animação e toque em "Salvar como template". Ex.: "Criativo do consultório", "Cortes da live de terça".</p></div>`; return; }
+  box.innerHTML = lista.map((t, i) => `<div class="tpl"><span class="eyebrow">${({e:'Editar', c:'Cortes', a:'Só animação'})[t.fl]}</span><h3>${esc(t.nome)}</h3>
+    <span class="meta">Salvo em ${t.em.split('-').reverse().join('/')} · legenda ${t.s.leg}</span>
+    <div class="acts"><button class="ghost" data-abrir="${i}" style="background:var(--key);color:var(--key-ink);border:0;font-weight:700">Abrir</button><button class="ghost" data-apagar="${i}">Apagar</button></div></div>`).join('');
+}
+const esc = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+document.getElementById('tpl-list').addEventListener('click', ev => {
+  const lista = loja.ler('corta.templates', []);
+  const ab = ev.target.closest('[data-abrir]');
+  if(ab){ const t = lista[+ab.dataset.abrir]; S[t.fl] = Object.assign(clone(PADRAO[t.fl]), clone(t.s)); pintar(t.fl); abrir(nomeFl(t.fl)); return; }
+  const ap = ev.target.closest('[data-apagar]');
+  if(ap){ if(ap.dataset.certeza){ lista.splice(+ap.dataset.apagar, 1); loja.gravar('corta.templates', lista); listarTemplates(); }
+    else { ap.dataset.certeza = '1'; ap.textContent = 'Toque de novo para apagar'; } }
+});
+
+/* ---------- navegação ---------- */
+const VIEWS = ['inicio','editar','cortes','animacao','instalar','templates'];
+function abrir(v, semRolar){
+  if(!VIEWS.includes(v)) v = 'inicio';
+  VIEWS.forEach(x => document.getElementById(`v-${x}`).hidden = x !== v);
+  document.querySelectorAll('.tab').forEach(t => t.dataset.go === v ? t.setAttribute('aria-current','page') : t.removeAttribute('aria-current'));
+  if(v === 'templates') listarTemplates();
+  try{ history.replaceState(null, '', v === 'inicio' ? location.pathname : '#' + v) }catch(e){}
+  if(!semRolar) window.scrollTo({top:0});
+}
+
+/* ---------- textos de instalação ---------- */
+document.getElementById('p-instalar').textContent =
+`Instale o Cortaí para mim, sem pular nenhum passo e me mostrando o progresso:
+1. Rode no terminal: claude plugin marketplace add ${REPO}
+   (se disser que já existe, rode: claude plugin marketplace update cortai)
+2. Rode: claude plugin install cortai@cortai
+3. Descubra a pasta do plugin com: claude plugin list --json (o caminho de instalação do "cortai").
+4. Rode o instalador dessa pasta em segundo plano e acompanhe até o fim:
+   no Mac: bash "<pasta>/instalar.sh"
+   no Windows: powershell -NoProfile -ExecutionPolicy Bypass -File "<pasta>\\instalar.ps1"
+   Ele baixa o que falta (2 a 4 GB, de 10 a 25 minutos) e edita um vídeo de teste.
+   Me lembre de deixar o computador na tomada.
+5. Só termine quando aparecer "✅ TUDO CERTO". Se der erro, me explique em português simples o que fazer.
+6. No fim, me peça para fechar e abrir o Claude Code.`;
+document.getElementById('p-atualizar').textContent =
+`Atualize o Cortaí para mim:
+1. Rode: claude plugin marketplace update cortai
+2. Rode: claude plugin update cortai@cortai
+3. Descubra a pasta nova com: claude plugin list --json e rode o instalador dela de novo, em segundo plano
+   (bash "<pasta>/instalar.sh" no Mac; powershell -NoProfile -ExecutionPolicy Bypass -File "<pasta>\\instalar.ps1" no Windows),
+   até aparecer "✅ TUDO CERTO".
+4. No fim, me peça para fechar e abrir o Claude Code.`;
+
+/* ---------- início ---------- */
+const salvo = loja.ler('corta.rascunho', null);
+if(salvo) for(const fl of ['e','c','a']) if(salvo[fl]) S[fl] = Object.assign(clone(PADRAO[fl]), salvo[fl]);
+for(const fl of ['e','c','a']){
+  montarLegendas(fl); montarAjustes(fl); montarTrilha(fl); montarPainel(fl);
+  if(document.querySelector(`[data-fx="${fl}"]`)) montarEfeitos(fl);
+  pintar(fl);
+}
+abrir((location.hash || '').slice(1) || 'inicio', true);
+window.addEventListener('hashchange', () => abrir((location.hash || '').slice(1) || 'inicio', true));
+})();
+</script>

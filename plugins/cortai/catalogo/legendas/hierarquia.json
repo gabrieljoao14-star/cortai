@@ -1,0 +1,29 @@
+{
+ "nivel": 1,
+ "tamanho": 1.0,
+ "letras": "maiusculas",
+ "cor": "#FFFFFF",
+ "destaque": "#FFE14D",
+ "tipo_destaque": "nenhum",
+ "cor_texto_caixa": "auto",
+ "contorno": 6,
+ "cor_contorno": "#000000",
+ "sombra": 3,
+ "brilho": 0,
+ "cor_brilho": null,
+ "fundo_bloco": null,
+ "palavras": 4,
+ "posicao": "baixo",
+ "animacao": "pop",
+ "giro_destaque": 0,
+ "escala_destaque": 1.0,
+ "id": "hierarquia",
+ "nome": "Hierarquia",
+ "descricao": "Palavra-chave enorme e colorida, o resto pequeno em cima.",
+ "fonte": "montserrat-900-normal",
+ "chave": {
+  "tamanho": 1.45,
+  "outras": 0.6,
+  "linha_propria": true
+ }
+}

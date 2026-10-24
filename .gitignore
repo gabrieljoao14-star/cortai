@@ -3,3 +3,6 @@ _corta/
 __pycache__/
 *.pyc
 .DS_Store
+node_modules/
+.wrangler/
+.pytest_cache/

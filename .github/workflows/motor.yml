@@ -13,7 +13,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     defaults:
       run:
-        working-directory: plugins/corta/motor
+        working-directory: plugins/cortai/motor
     env:
       CORTA_MODELO: small   # modelo menor só para o teste caber no tempo do GitHub
       PYTHONUTF8: "1"
@@ -48,18 +48,18 @@ jobs:
         run: |
           brew uninstall --ignore-dependencies ffmpeg 2>/dev/null || true
           export CORTA_HOME="$RUNNER_TEMP/home-corta"
-          bash plugins/corta/instalar.sh
-          "plugins/corta/bin/corta" diagnostico
+          bash plugins/cortai/instalar.sh
+          "plugins/cortai/bin/corta" diagnostico
       - name: Instalador do Windows
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           $env:CORTA_HOME = Join-Path $env:RUNNER_TEMP "home-corta"
-          powershell -NoProfile -ExecutionPolicy Bypass -File plugins/corta/instalar.ps1
+          powershell -NoProfile -ExecutionPolicy Bypass -File plugins/cortai/instalar.ps1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Lançador pelo Git Bash (como o Claude Code usa no Windows)
         if: runner.os == 'Windows'
         shell: bash
         run: |
           export CORTA_HOME="$RUNNER_TEMP/home-corta"
-          plugins/corta/bin/corta diagnostico
+          plugins/cortai/bin/corta diagnostico

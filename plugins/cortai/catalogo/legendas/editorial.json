@@ -1,0 +1,29 @@
+{
+ "nivel": 1,
+ "tamanho": 0.95,
+ "letras": "normal",
+ "cor": "#FFFFFF",
+ "destaque": "#F2D49B",
+ "tipo_destaque": "nenhum",
+ "cor_texto_caixa": "auto",
+ "contorno": 0,
+ "cor_contorno": "#000000",
+ "sombra": 14,
+ "brilho": 0,
+ "cor_brilho": null,
+ "fundo_bloco": null,
+ "palavras": 4,
+ "posicao": "baixo",
+ "animacao": "subir",
+ "giro_destaque": 0,
+ "escala_destaque": 1.0,
+ "id": "editorial",
+ "nome": "Editorial",
+ "descricao": "Texto limpo com a palavra-chave em serifa itálica. Elegante, para marca premium.",
+ "fonte": "dm-sans-700-normal",
+ "chave": {
+  "fonte": "playfair-display-700-italic",
+  "tamanho": 1.15,
+  "cor": "#FFE3A3"
+ }
+}

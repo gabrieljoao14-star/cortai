@@ -1,16 +1,16 @@
 {
-  "name": "corta",
+  "name": "cortai",
   "owner": {
     "name": "gabrieljoao14-star",
     "url": "https://github.com/gabrieljoao14-star"
   },
-  "description": "Receitas de edição de vídeo para o Claude Code: silêncio, erros de fala, legenda, zoom, cortes e acabamento. Mac e Windows.",
+  "description": "Cortaí: edição, cortes e viralização com IA no Claude Code. Silêncio, erros de fala, legendas, zoom, cortes de vídeo longo, animações, trilha e vídeos só de animação. Mac e Windows.",
   "plugins": [
     {
-      "name": "corta",
-      "source": "./plugins/corta",
-      "description": "Edita vídeos falados a partir de uma receita: tira silêncio e erros de fala, legenda em estilos do CapCut, zoom no rosto, cortes de vídeo longo, gancho, CTA e sons. Confere o resultado sozinho.",
-      "homepage": "https://github.com/gabrieljoao14-star/corta"
+      "name": "cortai",
+      "source": "./plugins/cortai",
+      "description": "Edita vídeos a partir de uma receita do app Cortaí: tira silêncio e erros de fala, legenda em 13 estilos, zoom no rosto, cortes de vídeo longo, animações (Remotion), trilha, gancho, CTA e vídeos só de animação. Confere o resultado sozinho.",
+      "homepage": "https://github.com/gabrieljoao14-star/cortai"
     }
   ]
 }
