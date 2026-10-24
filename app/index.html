@@ -195,6 +195,7 @@ pre.rec{margin:0; font-family:var(--f-mono); font-size:11.5px; line-height:1.55;
 .tpl{background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:16px; display:flex; flex-direction:column; gap:8px; min-width:0}
 .tpl .meta{font-size:12.5px; color:var(--muted)}
 .tpl .acts{display:flex; gap:8px; margin-top:auto}
+.versao-box{background:var(--panel); border:1px solid var(--t-inst); border-radius:var(--r); padding:12px 16px; font-size:15px; max-width:860px}
 .empty{background:var(--panel); border:1px dashed var(--line); border-radius:var(--r); padding:28px; display:flex; flex-direction:column; gap:8px; max-width:640px}
 
 @media (prefers-reduced-motion: reduce){*{transition:none!important; animation:none!important}}
@@ -218,7 +219,7 @@ pre.rec{margin:0; font-family:var(--f-mono); font-size:11.5px; line-height:1.55;
       <div class="mark">Corta<span>í</span></div>
       <p class="slogan">Edição, cortes e viralização com IA</p>
       <p class="tagline">Escolha a edição, copie a receita e cole no Claude Code. Ele edita seus vídeos no seu computador.</p>
-      <p class="small">Mac e Windows · precisa do Claude Code com plano pago · instale uma vez na aba Instalar</p>
+      <p class="small">Mac e Windows · precisa do Claude Code com plano pago · instale uma vez na aba Instalar · versão <span data-versao></span></p>
     </section>
     <div class="modes">
       <button class="mode" data-go="editar" style="--c:var(--t-editar)">
@@ -460,6 +461,7 @@ pre.rec{margin:0; font-family:var(--f-mono); font-size:11.5px; line-height:1.55;
   <main id="v-instalar" class="view page" style="--c:var(--t-inst)" hidden>
     <div class="page-head"><span class="tag"><span class="dot" style="width:8px;height:8px;border-radius:50%;background:var(--c)"></span>Instalar</span>
       <h2>Faça uma vez em cada computador</h2>
+      <p class="versao-box">Versão mais nova: <b data-versao></b>. Quem já tem instalado: o Cortaí avisa sozinho quando sair uma versão nova; é só colar o prompt <b>Atualizar</b> lá embaixo.</p>
       <p class="muted">Precisa do Claude Code com plano pago, Mac (chip Apple ou Intel) ou Windows 10/11, internet e uns 10 GB livres. Não pede senha de administrador.</p></div>
     <div class="inst">
       <div class="istep"><div class="sn">1</div><div class="sb"><h3>Abra o Claude Code</h3><p>No aplicativo ou no terminal. Comece uma conversa nova.</p></div></div>
@@ -499,6 +501,8 @@ pre.rec{margin:0; font-family:var(--f-mono); font-size:11.5px; line-height:1.55;
 <script>
 (() => {
 const REPO = 'gabrieljoao14-star/cortai';
+const VERSAO = '0.6.2';   // o gerar.py copia do plugin.json a cada publicação
+document.querySelectorAll('[data-versao]').forEach(el => el.textContent = VERSAO);
 
 /* ---------- catálogo (o mesmo do motor) ---------- */
 const ESTILOS = [

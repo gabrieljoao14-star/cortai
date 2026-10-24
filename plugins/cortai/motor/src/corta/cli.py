@@ -189,9 +189,10 @@ def main(argv=None):
 
     sub.add_parser("amostra", help="edita o vídeo de amostra e confere (teste da instalação)")
     sub.add_parser("diagnostico", help="confere se o computador está pronto e diz o que consertar")
+    sub.add_parser("versao", help="versão instalada, se há versão nova no GitHub e se o instalador rodou")
 
     a = ap.parse_args(argv)
-    if a.cmd not in ("perfil", "estilos", "diagnostico", "texto", "corrigir", "chave", "vozes"):
+    if a.cmd not in ("perfil", "estilos", "diagnostico", "texto", "corrigir", "chave", "vozes", "versao"):
         from .base import manter_acordado
         manter_acordado()
     try:
@@ -274,6 +275,9 @@ def main(argv=None):
             from .verificar import verificar
             ok = verificar(a.saida)
             sys.exit(0 if ok else 2)
+        elif a.cmd == "versao":
+            from .versao import versao
+            versao()
         elif a.cmd == "diagnostico":
             from .diagnostico import diagnostico
             sys.exit(0 if diagnostico() else 2)

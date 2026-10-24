@@ -27,7 +27,9 @@ A pasta do plugin é a pasta **duas acima desta skill** (o "Base directory" dest
    - leia a mensagem com ❌ — ela já diz o que fazer; explique em português simples;
    - internet caiu: rode de novo (o que já baixou não baixa outra vez);
    - qualquer outra coisa: rode `"<PLUGIN>/bin/corta" diagnostico` e siga a skill `/cortai:diagnostico`.
-6. No fim diga:
+6. Se veio do aviso "versão nova" ou do prompt Atualizar, confira no fim com `"<PLUGIN>/bin/corta" versao`
+   (deve dar `ESTADO: ok`).
+7. No fim diga:
    - que o Cortaí está pronto **neste computador**;
    - para editar é só colar uma receita do app Cortaí (ou pedir "edita esse vídeo com o Cortaí" e arrastar
      o vídeo);

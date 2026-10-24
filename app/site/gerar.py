@@ -2,8 +2,15 @@
 Uso: python3 gerar.py && npx wrangler@4.20.0 deploy"""
 from pathlib import Path
 
+import json
+import re
+
 aqui = Path(__file__).parent
-s = (aqui.parent / "index.html").read_text()
+versao = json.loads((aqui.parent.parent / "plugins" / "cortai" / ".claude-plugin" / "plugin.json").read_text())["version"]
+fonte = aqui.parent / "index.html"
+s = re.sub(r"const VERSAO = '[^']*';", f"const VERSAO = '{versao}';", fonte.read_text())
+fonte.write_text(s)                      # a versão do app (e do artifact) segue o plugin
+print(f"versão {versao}")
 i = s.find("</style>") + len("</style>")
 cabeca = s[:i].replace('<meta name="claude:viewport-fit-sides" content="cover">\n', "")
 html = ('<!doctype html>\n<html lang="pt-BR">\n<head>\n' + cabeca +

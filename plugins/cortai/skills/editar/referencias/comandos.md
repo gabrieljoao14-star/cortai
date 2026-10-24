@@ -23,6 +23,7 @@
 | `M estilos` | lista os estilos de legenda e de trilha | — |
 | `M perfil` | o que este computador usa (modelo, gravação) | — |
 | `M diagnostico` | confere a instalação e diz o que consertar | segundos |
+| `M versao` | versão instalada, se há mais nova no GitHub e se o instalador rodou (`ESTADO: ok/atualizar/instalar`) | até 3 s |
 
 Windows sem placa NVIDIA: transcrição ~2–4× mais lenta que a tabela. Com NVIDIA: bem mais rápida.
 **Um comando pesado por vez** (preparar, transcrever, trechos, lote, montar, legendar): dois ao mesmo tempo

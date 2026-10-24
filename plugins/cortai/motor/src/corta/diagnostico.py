@@ -102,6 +102,10 @@ def diagnostico() -> bool:
          f"não conectada — para usar voz, no Terminal: {COMANDO_CHAVE}")
     trilha_sf2 = RAIZ_PLUGIN / "assets" / "musica" / "GeneralUser-GS.sf2"
     item("Instrumentos da trilha", trilha_sf2.exists(), "", "atualize ou reinstale o plugin (claude plugin update cortai@cortai)")
+    from .versao import instalacao_completa, versao_github, versao_instalada, _numero
+    atual, nova = versao_instalada(), versao_github()
+    item("Versão", True, f"{atual}" + (f" — há uma mais nova ({nova}): cole o prompt Atualizar do app" if nova and _numero(nova) > _numero(atual) else ""))
+    item("Instalador rodou nesta versão", instalacao_completa(), "", "rode o instalador de novo (/cortai:instalar)")
     item("Trilha composta (opcional)", True, "disponível" if importlib.util.find_spec("tinysoundfont") else
          "indisponível neste computador (Mac Intel): use uma música sua com trilha=arquivo")
 

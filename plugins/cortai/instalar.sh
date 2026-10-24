@@ -86,3 +86,5 @@ passo "5/6 medindo este computador"
 
 passo "6/6 teste: editando o vídeo de amostra (a 1ª vez baixa o modelo de transcrição, 1–3 GB)"
 "${RAIZ}/bin/corta" amostra
+# marca: esta versão está pronta (a skill confere antes de editar; plugin atualizado sem instalador = rodar de novo)
+printf '%s\n' "${RAIZ}" > "${CORTA_HOME}/instalado.txt"

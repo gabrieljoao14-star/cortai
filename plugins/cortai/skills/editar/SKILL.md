@@ -22,8 +22,15 @@ Exemplo: se a skill está em `/Users/ana/.claude/plugins/cache/cortai/cortai/0.6
 `"/Users/ana/.claude/plugins/cache/cortai/cortai/0.6.0/bin/corta"` (o motor se chama `corta`). No Windows o mesmo lançador roda no
 Bash do Claude Code. Caminhos de vídeo sempre entre aspas (têm espaço e acento).
 
-**Antes de tudo**, rode `"<PLUGIN>/bin/corta" --version`. Se falhar, diga à pessoa para rodar
-`/cortai:instalar` e pare.
+**Antes de tudo**, rode `"<PLUGIN>/bin/corta" versao` e leia a última linha:
+- falhou (o motor nem abre): o Cortaí não foi instalado neste computador — siga a skill `/cortai:instalar`
+  e só depois edite;
+- `ESTADO: instalar`: o plugin foi atualizado mas o instalador não rodou nesta versão. Diga em uma linha
+  "o Cortaí foi atualizado; vou preparar a versão nova (uns 5 min)", siga a skill `/cortai:instalar` e
+  depois continue a edição;
+- `ESTADO: atualizar`: existe versão mais nova. Dê o aviso da linha ⚠ em uma frase e **continue a edição**
+  com a versão atual (não atualize no meio de uma edição);
+- `ESTADO: ok`: siga.
 
 ## 1. Ler a receita
 O formato está em [referencias/receita.md](referencias/receita.md). Campos que faltarem usam o padrão de lá.

@@ -106,4 +106,7 @@ if ($LASTEXITCODE -ne 0) { Erro "Nao consegui medir o computador." }
 
 Passo "6/6 teste: editando o video de amostra (a 1a vez baixa o modelo de transcricao, 1-3 GB)"
 & $uv run --quiet --frozen --project $motor corta amostra
-exit $LASTEXITCODE
+$codigo = $LASTEXITCODE
+# marca: esta versao esta pronta (UTF-8 sem BOM: o nome do usuario pode ter acento)
+if ($codigo -eq 0) { [System.IO.File]::WriteAllText((Join-Path $CortaHome "instalado.txt"), $Raiz) }
+exit $codigo
