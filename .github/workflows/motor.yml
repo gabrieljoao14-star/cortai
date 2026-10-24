@@ -30,6 +30,9 @@ jobs:
       - run: uv run corta perfil --recalcular
       - run: uv run --group dev pytest -q
       - run: uv run corta amostra
+      # este job testa o motor direto, sem o instalador (o job "instalador" testa o caminho completo):
+      # grava a marca que o instalador deixaria, senão o diagnóstico pede para rodar o instalador
+      - run: uv run python -c "from corta.base import PASTA_USUARIO as P, RAIZ_PLUGIN as R; P.mkdir(exist_ok=True); (P / 'instalado.txt').write_text(str(R))"
       - run: uv run corta diagnostico
 
   instalador:
