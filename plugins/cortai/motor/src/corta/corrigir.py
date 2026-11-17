@@ -8,6 +8,15 @@ Regras (achadas no teste real de 23/10):
   ("aquele aposentado=Sabe aquele aposentado" → 3 palavras, cada uma com seu destaque);
 - `--em SEGUNDOS` troca só a ocorrência mais perto desse tempo (padrão: todas);
 - correção que começa com "-" funciona (ex.: "-fé=fé").
+
+Pontuação (achado em 13/11: trocar várias palavras deixava vírgula e ponto fora do lugar):
+- a pontuação fica **no lugar**, não na palavra: "aqui, doutor=doutor aqui" dá "doutor, aqui";
+- pontuação escrita do lado certo vale como está: "doutor aqui=doutor, aqui." põe a vírgula e o ponto;
+- `--exato` troca **ao pé da letra**: acha só a palavra escrita daquele jeito (pontuação e maiúsculas
+  contam) e escreve o lado certo como está ("advogado. E=advogado, e" · "certo?=certo." · "fim.=fim"
+  tira o ponto);
+- "errado|próxima=certo" troca só quando a palavra seguinte é `próxima` ("fim.|Mas=fim," troca o
+  ponto só antes de "Mas"; a próxima não muda). Vale com e sem `--exato`.
 """
 from __future__ import annotations
 
@@ -29,30 +38,53 @@ def _miolo(t: str) -> str:
     return _separa(t)[1].lower()
 
 
-def _aplicar(palavras: list[dict], errado: list[str], certo: list[str], em: float | None) -> tuple[list[dict], int]:
+def _bate(palavra: str, alvo: str, exato: bool) -> bool:
+    if exato:
+        return palavra.strip() == alvo
+    return _miolo(palavra) == _miolo(alvo)
+
+
+def _aplicar(palavras: list[dict], errado: list[str], certo: list[str], em: float | None,
+             proxima: str | None = None, exato: bool = False) -> tuple[list[dict], int]:
     n = len(errado)
-    alvo = [_miolo(e) for e in errado]
-    achados = [i for i in range(len(palavras) - n + 1) if [_miolo(w["word"]) for w in palavras[i: i + n]] == alvo]
+    achados = []
+    for i in range(len(palavras) - n + 1):
+        if not all(_bate(w["word"], e, exato) for w, e in zip(palavras[i: i + n], errado)):
+            continue
+        if proxima is not None:
+            if i + n >= len(palavras) or not _bate(palavras[i + n]["word"], proxima, exato):
+                continue
+        if achados and i < achados[-1] + n:          # não sobrepõe a troca anterior ("a a a" com "a a=b")
+            continue
+        achados.append(i)
     if em is not None and achados:
         achados = [min(achados, key=lambda i: abs(palavras[i]["start"] - em))]
     if not achados:
         return palavras, 0
+
+    def com_pontuacao(c: str, pre: str, pos: str) -> str:
+        """`c` com a pontuação do lugar (pre/pos), a não ser a que já veio escrita em `c`."""
+        if exato:
+            return c
+        c_pre, c_meio, c_pos = _separa(c)
+        return (c_pre or pre) + c_meio + (c_pos or pos)
+
     out, i, usados = [], 0, set(achados)
     while i < len(palavras):
         if i in usados:
             bloco = palavras[i: i + n]
-            pre, pos = _separa(bloco[0]["word"])[0], _separa(bloco[-1]["word"])[2]
             ini, fim = bloco[0]["start"], bloco[-1]["end"]
-            if len(certo) == n:              # mesma quantidade: mantém o tempo de cada palavra
-                for k, (w, c) in enumerate(zip(bloco, certo)):
-                    out.append({"word": (pre if k == 0 else "") + c + (pos if k == n - 1 else ""),
-                                "start": w["start"], "end": w["end"]})
+            if len(certo) == n:              # mesma quantidade: mantém o tempo e a pontuação de cada lugar
+                for w, c in zip(bloco, certo):
+                    pre, _, pos = _separa(w["word"])
+                    out.append({**w, "word": com_pontuacao(c, pre, pos)})
             else:                            # quantidade diferente: divide o tempo pelo tamanho das palavras
+                pre, pos = _separa(bloco[0]["word"])[0], _separa(bloco[-1]["word"])[2]
                 pesos = [max(1, len(c)) for c in certo]
                 total, t = sum(pesos), ini
                 for k, (c, p) in enumerate(zip(certo, pesos)):
                     d = (fim - ini) * p / total
-                    out.append({"word": (pre if k == 0 else "") + c + (pos if k == len(certo) - 1 else ""),
+                    out.append({**bloco[0], "word": com_pontuacao(c, pre if k == 0 else "", pos if k == len(certo) - 1 else ""),
                                 "start": round(t, 3), "end": round(t + d, 3)})
                     t += d
             i += n
@@ -62,7 +94,7 @@ def _aplicar(palavras: list[dict], errado: list[str], certo: list[str], em: floa
     return out, len(achados)
 
 
-def corrigir(video: Path, correcoes: list[str], em: float | None = None) -> int:
+def corrigir(video: Path, correcoes: list[str], em: float | None = None, exato: bool = False) -> int:
     video = video.resolve()
     reg = saida_registrada(video)
     if reg and reg.get("palavras") and Path(reg["palavras"]).exists():
@@ -78,12 +110,17 @@ def corrigir(video: Path, correcoes: list[str], em: float | None = None) -> int:
         if "=" not in c:
             raise CortaErro(f"Correção '{c}' precisa ser errado=certo (ex.: lerite=holerite).")
         errado, certo = c.split("=", 1)
+        errado, _, proxima = errado.partition("|")
+        proxima = proxima.strip() or None
         e_tokens, c_tokens = errado.split(), certo.split()
         if not e_tokens or not c_tokens:
             raise CortaErro(f"Correção '{c}' está vazia de um dos lados.")
-        palavras, n = _aplicar(palavras, e_tokens, c_tokens, em)
+        if proxima and len(proxima.split()) != 1:
+            raise CortaErro(f"Correção '{c}': depois do | vai uma palavra só (a que vem logo em seguida).")
+        palavras, n = _aplicar(palavras, e_tokens, c_tokens, em, proxima, exato)
         total += n
-        log(f"   {errado} → {certo}: {n}×" + ("" if n else " (não achei; confira a grafia com 'corta texto')"))
+        onde = f" (antes de \"{proxima}\")" if proxima else ""
+        log(f"   {errado.strip()}{onde} → {certo}: {n}×" + ("" if n else " (não achei; confira a grafia e a pontuação com 'corta texto')"))
     if total:
         salvar_json(arquivo, palavras)
         log(f"   salvo em {arquivo.name}")

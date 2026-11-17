@@ -21,6 +21,18 @@ nenhuma saída é sobrescrita (`nome (editado).mp4`, `nome (editado) (2).mp4`…
 
 Só tirar silêncio: pular 2–4 e rodar `corta montar VIDEO` sem `--takes`.
 Correção de palavra errada da transcrição (antes da legenda): `corta corrigir "VIDEO (editado).mp4" lerite=holerite`.
+Trocando várias palavras a pontuação fica no lugar; `--exato` troca ao pé da letra (para mexer só na
+pontuação: `--exato "advogado. E=advogado, e"`) e `"errado|próxima=certo"` troca só antes de `próxima`.
+
+**Pausas e ruído da sala (0.7.0).** A montagem mede o ruído de fundo (os 12 % mais baixos da gravação) e
+põe o limiar de voz 8 dB acima dele, nunca abaixo de −42 dB (sala silenciosa fica como sempre foi) nem a
+menos de 10 dB da voz. Em sala com ruído cada pedaço ganha até 0,10 s a mais no fim, sem entrar no trecho
+seguinte. `--limiar DB` fixa o número à mão. O limiar usado fica em `mapa_*.json` (`limiar_db`, `ruido_db`).
+
+**Conferência (0.7.0).** O `verificar` ouve o arquivo final inteiro (re-transcrição em janelas de ~30 s
+cortadas em pausas), compara com as palavras da edição e mostra o texto: sobra (resto de take, bastidor),
+falta (palavra engolida na emenda), troca na emenda e sequência repetida viram aviso ⚠.
+`--sem-retranscrever` pula essa parte.
 
 ### Formato, enquadramento e zoom (na mesma passada da montagem)
 `corta montar VIDEO --takes … --formato 9:16 --enquadrar rosto --zoom normal`
@@ -86,6 +98,8 @@ sai igual no Mac e no Windows. `--estilo nenhuma` grava só o acabamento abaixo,
   (o começo da fala da chamada, tirado da transcrição); padrão 4 s antes do fim. "A · B" quebra em 2 linhas.
   No anúncio do Meta o link é o botão: use "Toque em Saiba mais", não "link na descrição".
 - `--barra`: barra de progresso no topo, na cor de destaque.
+- `--trilha ESTILO` ou `--trilha-arquivo MUSICA`, com `--trilha-tipo anuncio` (música ~15 dB abaixo da
+  voz: volume 0,75 e compressão 3:1 quando a pessoa fala) ou `vsl` (padrão: ~27 dB abaixo, 0,32 e 6:1).
 - `--sons`: `poucos` = impacto no gancho, pop no CTA e até 3 whooshes nas maiores trocas de zoom;
   `todos` = whoosh em toda troca de plano. Sons gerados por código (sem direitos autorais), baixinhos.
 

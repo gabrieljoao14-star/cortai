@@ -22,7 +22,7 @@
    nada da tela aparece); 2+ pessoas lado a lado → `centro`. Nunca pinte a tela de preto na mão.
    Gravação com tela + câmera (Zoom, Meet, OBS): `M regioes V`, **abra `regioes.png`** e confira as caixas
    antes de cortar. Se estiverem erradas, escreva as caixas à mão num JSON e passe `--regioes`.
-6. `M cortar V --cortes "<…>/cortes.json" --enquadrar <rosto|tela-camera|camera> --zoom <zoom> --legenda <estilo> [--ajuste …] [--cta "…"] [--barra] [--sons poucos] [--trilha <estilo>]`
+6. `M cortar V --cortes "<…>/cortes.json" --enquadrar <rosto|tela-camera|camera> --zoom <zoom> --legenda <estilo> [--ajuste …] [--cta "…"] [--barra] [--sons poucos] [--trilha <estilo> --trilha-tipo anuncio]`
    Sai `<vídeo> - cortes/01 - nome (final).mp4`. `legenda: automatico` e `trilha=automatico`: escolha pelo
    nicho (automatico-e-lote.md); um estilo só para todos os cortes do mesmo vídeo.
    Efeitos de motion nos cortes (só se a receita pedir): depois do `cortar`, rode

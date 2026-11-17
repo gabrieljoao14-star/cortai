@@ -4,12 +4,14 @@
   corta preparar VIDEO [--voz leve|forte|nao] [--ritmo rapido|natural]
   corta transcrever VIDEO [--idioma pt] [--modelo large-v2]
   corta trechos VIDEO [--isolado auto|todos|nenhum]
-  corta montar VIDEO [--takes takes.json] [--apertar|--sem-apertar] [--saida ARQ]
+  corta montar VIDEO [--takes takes.json] [--apertar|--sem-apertar] [--saida ARQ] [--limiar DB]
                [--formato 9:16] [--enquadrar rosto|centro|desfocado|tela-camera] [--regioes ARQ] [--zoom nao|leve|normal|forte]
   corta legendar VIDEO [--estilo creator-bold|nenhuma] [--ajuste chave=valor …] [--saida ARQ]
                  [--gancho "pergunta | resposta"] [--cta "Toque em Saiba mais"] [--barra] [--sons poucos]
+                 [--trilha ESTILO | --trilha-arquivo MUSICA] [--trilha-tipo anuncio|vsl] [--efeitos efeitos.json]
   corta previa VIDEO [--estilo …] [--em SEGUNDOS]
-  corta corrigir VIDEO lerite=holerite ["lei rite=holerite" …]
+  corta corrigir [--em S] [--exato] VIDEO lerite=holerite ["lei rite=holerite" …]
+                 (--exato "advogado. E=advogado, e" · "fim.|Mas=fim," troca só antes de "Mas")
   corta lote PASTA [--voz leve] [--ritmo rapido] [--sem-trechos]
   corta texto VIDEO
   corta cortar VIDEO --cortes cortes.json [--formato 9:16] [--enquadrar rosto] [--zoom leve] [--legenda ESTILO]
@@ -21,7 +23,7 @@
   corta animacao --cenas cenas.json --narracao narracao.wav --palavras narracao.json --saida video.mp4
   corta trilha --estilo emocional --duracao 60 --saida trilha.wav
   corta estilos
-  corta verificar SAIDA
+  corta verificar SAIDA [--sem-retranscrever]
   corta amostra
   corta diagnostico
 """
@@ -84,6 +86,8 @@ def main(argv=None):
     p.add_argument("--enquadrar", default="rosto", choices=["rosto", "centro", "desfocado", "tela-camera", "camera"])
     p.add_argument("--zoom", default="nao", choices=["nao", "leve", "normal", "forte"])
     p.add_argument("--regioes", type=Path, help="caixas da tela e da câmera (padrão: detectar)")
+    p.add_argument("--limiar", type=float, default=None, metavar="DB",
+                   help="volume acima do qual é voz, em dB (padrão: medido pelo ruído da sala)")
 
     for nome in ("legendar", "previa"):
         p = sub.add_parser(nome, help="queima a legenda" if nome == "legendar" else "quadro de prévia da legenda")
@@ -103,12 +107,16 @@ def main(argv=None):
             p.add_argument("--trilha", default="nao",
                            choices=["nao", "emocional", "corporativo", "tensao", "lofi", "epico", "energia"])
             p.add_argument("--trilha-arquivo", type=Path, help="música da própria pessoa (mp3/wav)")
+            p.add_argument("--trilha-tipo", default=None, choices=["anuncio", "vsl"],
+                           help="volume da música: anuncio = presente (~15 dB abaixo da voz); vsl = discreta (~27 dB, padrão)")
             p.add_argument("--efeitos", type=Path, help="efeitos.json com os efeitos de motion (Remotion)")
         else:
             p.add_argument("--em", type=float, default=None, help="segundo do vídeo (padrão: meio da 1ª frase)")
 
     p = sub.add_parser("corrigir", help="corrige palavras erradas da transcrição (errado=certo)")
     p.add_argument("--em", type=float, default=None, help="troca só a ocorrência mais perto deste segundo")
+    p.add_argument("--exato", action="store_true",
+                   help="ao pé da letra: a pontuação e as maiúsculas contam na busca e o lado certo entra como escrito")
     p.add_argument("video", type=Path)
     p.add_argument("correcoes", nargs=argparse.REMAINDER, metavar="ERRADO=CERTO")
 
@@ -141,6 +149,7 @@ def main(argv=None):
     p.add_argument("--barra", action="store_true")
     p.add_argument("--sons", default="nao", choices=["nao", "poucos", "todos"])
     p.add_argument("--trilha", default=None, choices=["nao", "emocional", "corporativo", "tensao", "lofi", "epico", "energia"])
+    p.add_argument("--trilha-tipo", default=None, choices=["anuncio", "vsl"])
 
     p = sub.add_parser("regioes", help="acha a tela e a câmera numa gravação de aula/tutorial")
     p.add_argument("video", type=Path)
@@ -186,6 +195,9 @@ def main(argv=None):
 
     p = sub.add_parser("verificar", help="confere a saída (duração, sincronia, fala removida, legenda)")
     p.add_argument("saida", type=Path)
+    p.add_argument("--sem-retranscrever", action="store_true",
+                   help="pula o [7] (ouvir o vídeo final inteiro); só para repetir a conferência depois de um ajuste de imagem")
+    p.add_argument("--idioma", default="pt")
 
     sub.add_parser("amostra", help="edita o vídeo de amostra e confere (teste da instalação)")
     sub.add_parser("diagnostico", help="confere se o computador está pronto e diz o que consertar")
@@ -212,12 +224,12 @@ def main(argv=None):
         elif a.cmd == "montar":
             from .montar import montar
             montar(a.video, takes=a.takes, apertar=a.apertar, saida=a.saida, formato=a.formato,
-                   enquadrar=a.enquadrar, zoom=a.zoom, regioes=a.regioes)
+                   enquadrar=a.enquadrar, zoom=a.zoom, regioes=a.regioes, limiar=a.limiar)
         elif a.cmd == "legendar":
             from .legenda.queimar import legendar
             legendar(a.video, estilo=a.estilo, ajustes=_ajustes(a.ajuste), palavras=a.palavras, idioma=a.idioma, saida=a.saida,
                      gancho=a.gancho, gancho_ate=a.gancho_ate, cta=a.cta, cta_em=a.cta_em, barra=a.barra, sons=a.sons,
-                     trilha=a.trilha, trilha_arquivo=a.trilha_arquivo, efeitos=a.efeitos)
+                     trilha=a.trilha, trilha_arquivo=a.trilha_arquivo, efeitos=a.efeitos, trilha_tipo=a.trilha_tipo)
         elif a.cmd == "previa":
             from .legenda.queimar import previa
             previa(a.video, estilo=a.estilo, ajustes=_ajustes(a.ajuste), palavras=a.palavras, idioma=a.idioma, em=a.em)
@@ -225,7 +237,7 @@ def main(argv=None):
             from .corrigir import corrigir
             if not a.correcoes:
                 raise CortaErro("Diga o que corrigir, ex.: corta corrigir VIDEO lerite=holerite")
-            corrigir(a.video, a.correcoes, em=a.em)
+            corrigir(a.video, a.correcoes, em=a.em, exato=a.exato)
         elif a.cmd == "quadros":
             from .folha import quadros
             quadros(a.video, em=a.em, n=a.n)
@@ -240,7 +252,7 @@ def main(argv=None):
             from .cortes import cortar
             cortar(a.video, a.cortes, formato=a.formato, enquadrar=a.enquadrar, zoom=a.zoom, legenda=a.legenda,
                    ajustes=_ajustes(a.ajuste), takes=a.takes, regioes=a.regioes, cta=a.cta, barra=a.barra, sons=a.sons,
-                   trilha=a.trilha)
+                   trilha=a.trilha, trilha_tipo=a.trilha_tipo)
         elif a.cmd == "regioes":
             from .regioes import detectar
             detectar(a.video, a.de, a.ate)
@@ -273,7 +285,7 @@ def main(argv=None):
                 log(f"{k:18s} {v}")
         elif a.cmd == "verificar":
             from .verificar import verificar
-            ok = verificar(a.saida)
+            ok = verificar(a.saida, retranscrever=not a.sem_retranscrever, idioma=a.idioma)
             sys.exit(0 if ok else 2)
         elif a.cmd == "versao":
             from .versao import versao

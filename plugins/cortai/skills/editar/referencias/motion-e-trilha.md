@@ -26,6 +26,11 @@
 - Durante palavra gigante, contador, gráfico e manchetes a legenda some de baixo (não aparece texto duplicado).
 - `"atras": true` coloca o efeito **atrás da pessoa** (recorte automático de quem fala). Use na palavra gigante
   de 1 palavra curta ("DOBRO", "GRÁTIS"), no máximo 1–2 vezes por vídeo: é o efeito mais marcante do kit.
+- Palavra gigante: o tamanho se ajusta ao número de letras para caber na largura (até ~12 letras fica
+  grande; mais que isso, prefira 1 palavra). `subtitulo` curto (até ~5 palavras).
+- **Em cima de tela de computador** (gravação de tela, print, sistema aberto) a palavra some no meio das
+  letras da tela: passe `"fundo": "escurecer"` nas props (`{"texto": "MULTADO", "fundo": "escurecer"}`).
+  No layout `tela-camera` o motor já faz isso sozinho. A legenda some enquanto o fundo está escurecido.
 - A cor segue o destaque da legenda. Primeira vez de um efeito leva ~15 s para renderizar; depois fica em cache.
 
 ### Quando usar (e quando não)
@@ -58,6 +63,15 @@ efeitos.json, abra 3–4 quadros dela e anote em 3 linhas a cor de destaque, o p
 ## Trilha sonora
 `--trilha <estilo>` compõe uma trilha original que segue a edição (entra leve, vácuo antes das viradas,
 resolve no CTA) e abaixa sozinha quando a pessoa fala. Música da pessoa: `--trilha-arquivo "<musica.mp3>"`.
+
+**Volume da música: `--trilha-tipo`** (vale para trilha composta e para música da pessoa):
+
+| Tipo | Quando | Como soa |
+|---|---|---|
+| `anuncio` | criativo, anúncio, reels, corte curto (até ~2 min) | música presente, uns 15 dB abaixo da voz: dá para ouvir no celular |
+| `vsl` (padrão) | vídeo longo de venda (VSL), aula, depoimento longo | música discreta, uns 27 dB abaixo da voz: não cansa em 10+ min |
+
+Escolha pelo tipo do vídeo e diga qual usou. Se a pessoa achar a música alta ou baixa, troque o tipo.
 
 | Estilo | Combina com |
 |---|---|

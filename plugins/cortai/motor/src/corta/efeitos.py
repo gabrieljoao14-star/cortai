@@ -195,9 +195,10 @@ def preparar_efeitos(arquivo: Path, video: Path, info: dict, destaque: str, topo
     lista = ler_json(arquivo)
     lista = lista.get("efeitos", lista) if isinstance(lista, dict) else lista
     reg = saida_registrada(video) or {}
-    mapa, original = None, video
+    mapa, original, layout = None, video, None
     if reg.get("mapa") and Path(reg["mapa"]).exists():
         mapa = ler_json(reg["mapa"])["mapa"]
+        layout = ler_json(reg["mapa"]).get("enquadrar")
         original = Path(ler_json(Path(reg["mapa"]).parent / "trechos.json")["video"])
 
     def para_original(t: float) -> float:
@@ -220,6 +221,10 @@ def preparar_efeitos(arquivo: Path, video: Path, info: dict, destaque: str, topo
             alturas = [x[3] for x in amos if x[3]]
             if ok and alturas:
                 rosto = (cx, cy, sorted(alturas)[len(alturas) // 2])
+        if tipo == "palavra-gigante" and layout == "tela-camera" and not e.get("atras"):
+            # em cima de tela de computador a palavra some no meio das letras da tela: escurece o fundo (13/11)
+            e = {**e, "props": {"fundo": "escurecer", **(e.get("props") or {})}}
+            rosto = None
         if tipo == "imagem":
             e = {**e, "props": embutir_imagem(e.get("props") or {}, info["largura"], info["altura"], Path(arquivo).parent)}
         if e.get("atras") and rosto:

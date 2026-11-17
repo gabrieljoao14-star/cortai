@@ -72,7 +72,9 @@ passe de 10 min: rode o comando **em segundo plano** e acompanhe; não deixe o c
 3. **Mostre antes de gravar o vídeo inteiro**: rode `previa`, abra a imagem (Read) e olhe você mesmo antes
    de mostrar. Legenda cobrindo o rosto, palavra cortada na borda ou texto ilegível: ajuste antes.
 4. **Confira no fim** com `verificar` e conte o resultado com honestidade: `OK ✅`, `OK com avisos`
-   (explique cada aviso) ou `ATENÇÃO` (não entregue como pronto: investigue e corrija).
+   (explique cada aviso) ou `ATENÇÃO` (não entregue como pronto: investigue e corrija). O `verificar`
+   ouve o vídeo final inteiro e mostra o texto (item `[7]`): **leia esse texto inteiro** antes de entregar —
+   resto de take, frase repetida e fala de bastidor só aparecem ali.
 5. Transcrição erra nomes e termos técnicos: leia o texto antes de legendar e corrija com `corrigir`
    (nome de pessoa/marca na dúvida: pergunte).
 6. Fale com a pessoa em português simples. Nada de jargão técnico na conversa.

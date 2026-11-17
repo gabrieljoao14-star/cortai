@@ -80,7 +80,7 @@ def texto(video: Path) -> list[dict]:
 def cortar(video: Path, arquivo_cortes: Path, formato: str = "9:16", enquadrar: str = "rosto", zoom: str = "nao",
            legenda: str | None = None, ajustes: dict | None = None, takes: Path | None = None,
            regioes: Path | None = None, cta: str | None = None, barra: bool = False, sons: str = "nao",
-           trilha: str | None = None) -> list[Path]:
+           trilha: str | None = None, trilha_tipo: str | None = None) -> list[Path]:
     from .legenda.queimar import legendar
     from .montar import montar
     video = video.resolve()
@@ -103,7 +103,7 @@ def cortar(video: Path, arquivo_cortes: Path, formato: str = "9:16", enquadrar: 
         if legenda or gancho or cta or barra or sons != "nao" or trilha not in (None, "nao"):
             final = legendar(saida, estilo=legenda or "nenhuma", ajustes=ajustes or {}, saida=pasta / f"{nome} (final).mp4",
                              gancho=gancho, cta=c.get("cta", cta), barra=barra, sons=sons,
-                             trilha=None if trilha == "nao" else trilha)
+                             trilha=None if trilha == "nao" else trilha, trilha_tipo=trilha_tipo)
             feitos.append(final)
         else:
             feitos.append(saida)

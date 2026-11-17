@@ -8,15 +8,15 @@
 | `M transcrever V` | transcrição literal por palavra | ~1,7× a duração da **fala** (7:35 de vídeo com 4:12 de fala = 7,3 min) |
 | `M trechos V [--isolado auto|todos|nenhum]` | lista de trechos para os takes | ~10 s por trecho suspeito (gravação com muitos recomeços: ~5 min) |
 | `M lote PASTA [--voz] [--ritmo] [--sem-trechos]` | prepara + transcreve + trechos de todos os vídeos da pasta | soma dos vídeos (rode em segundo plano) |
-| `M montar V [--takes T] [--formato] [--enquadrar] [--zoom] [--regioes R]` | monta o vídeo | ~25 % da duração original |
-| `M corrigir [--em S] SAIDA "errado=certo" …` | corrige palavra da transcrição (só deste vídeo) | instantâneo |
+| `M montar V [--takes T] [--formato] [--enquadrar] [--zoom] [--regioes R] [--limiar DB]` | monta o vídeo (mede o ruído da sala para achar as pausas) | ~25 % da duração original |
+| `M corrigir [--em S] [--exato] SAIDA "errado=certo" "errado\|próxima=certo" …` | corrige palavra e pontuação da transcrição (só deste vídeo) | instantâneo |
 | `M texto V` | transcrição em frases com tempo | instantâneo |
 | `M regioes V [--de S --ate S]` | acha tela e câmera (aula/tutorial) | ~30 s |
 | `M cortar V --cortes C …` | gera os cortes | ~1 min por corte |
 | `M previa SAIDA --estilo E [--ajuste …] [--em S]` | 3 quadros com a legenda | segundos |
-| `M legendar SAIDA --estilo E [--ajuste …] [--gancho] [--cta] [--cta-em] [--barra] [--sons] [--trilha] [--efeitos]` | legenda e acabamento | ~50 % da duração (+ ~15 s por efeito novo) |
+| `M legendar SAIDA --estilo E [--ajuste …] [--gancho] [--cta] [--cta-em] [--barra] [--sons] [--trilha] [--trilha-arquivo] [--trilha-tipo anuncio\|vsl] [--efeitos]` | legenda e acabamento | ~50 % da duração (+ ~15 s por efeito novo) |
 | `M quadros SAIDA [--em S …]` | folha com quadros do vídeo pronto (gancho, meio, CTA) para olhar | segundos |
-| `M verificar SAIDA` | conferência independente | 1–2 min |
+| `M verificar SAIDA [--sem-retranscrever]` | conferência independente; ouve o vídeo final inteiro e mostra o texto | 1–2 min + ~1,5× a duração do vídeo final (vídeo de 1 min: ~3 min; VSL de 15 min: ~25 min, rode em segundo plano) |
 | `M narracao --saida S (--audio A | --texto T.txt --voz V)` | narração com palavras no tempo (áudio próprio ou ElevenLabs) | segundos (áudio próprio: transcreve) |
 | `M animacao --cenas C --narracao N --palavras P --saida S [--formato]` | grava o vídeo só de animação | ~1,5 s por segundo de vídeo |
 | `M vozes` / `M chave elevenlabs --status` | vozes da ElevenLabs / se a chave está conectada | segundos |

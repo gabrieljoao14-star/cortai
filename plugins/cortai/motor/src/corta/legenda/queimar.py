@@ -21,7 +21,11 @@ from .blocos import linha_do_tempo, montar_blocos
 from .desenho import Desenhista
 from .estilos import carregar_estilo
 
-TRILHA_VOLUME = 0.32   # trilha em -20 LUFS × 0,32 ≈ -30 LUFS, bem abaixo da voz (-16)
+# Mixagem da trilha por tipo de vídeo: (volume, quanto abaixa quando a pessoa fala).
+# vsl     = vídeo longo de venda, aula: música discreta, uns 27 dB abaixo da voz (o padrão de sempre);
+# anuncio = criativo curto: música presente, uns 15 dB abaixo da voz (a 27 dB não se ouvia no celular, 13/11).
+TRILHA_TIPOS = {"vsl": (0.32, 6), "anuncio": (0.75, 3)}
+TRILHA_TIPO_PADRAO = "vsl"
 DUR_ANIM = {"pop": 0.18, "pulo": 0.32, "aparecer": 0.20, "subir": 0.22, "nenhuma": 0.0}
 PASSO_ANIM = 1 / 30
 
@@ -176,8 +180,13 @@ def _fim_primeira_frase(tl: list[dict], padrao: float = 3.5) -> float:
 def legendar(video: Path, estilo: str = "creator-bold", ajustes: dict | None = None, palavras: Path | None = None,
              idioma: str = "pt", saida: Path | None = None, gancho: str | None = None, gancho_ate: float | None = None,
              cta: str | None = None, cta_em: float | None = None, barra: bool = False, sons: str = "nao",
-             trilha: str | None = None, trilha_arquivo: Path | None = None, efeitos: Path | None = None) -> Path:
+             trilha: str | None = None, trilha_arquivo: Path | None = None, efeitos: Path | None = None,
+             trilha_tipo: str | None = None) -> Path:
     from .extras import Camada, eventos as eventos_topo, faixa_de_sons, viradas
+    trilha_tipo = trilha_tipo or TRILHA_TIPO_PADRAO
+    if trilha_tipo not in TRILHA_TIPOS:
+        raise CortaErro(f"Tipo de trilha '{trilha_tipo}' não existe. Use: {' ou '.join(TRILHA_TIPOS)}.")
+    tem_trilha = trilha not in (None, "", "nao") or bool(trilha_arquivo)
     sem_legenda = estilo in ("nenhuma", "nenhum", "sem")
     video, info, est, tl, des, origem = _preparar(video, "creator-bold" if sem_legenda else estilo, ajustes or {}, palavras, idioma)
     job = _job(video)
@@ -196,8 +205,8 @@ def legendar(video: Path, estilo: str = "creator-bold", ajustes: dict | None = N
     partes += [nome for nome, ligado in (("gancho", gancho), ("CTA", cta), ("barra", barra)) if ligado]
     if sons != "nao":
         partes.append(f"sons {sons}")
-    if trilha not in (None, "", "nao") or trilha_arquivo:
-        partes.append(f"trilha {trilha or 'própria'}")
+    if tem_trilha:
+        partes.append(f"trilha {'própria' if trilha_arquivo else trilha} ({trilha_tipo})")
     if efeitos:
         partes.append("efeitos")
     log(f"== {' · '.join(partes)} · palavras de: {origem}")
@@ -310,7 +319,7 @@ def legendar(video: Path, estilo: str = "creator-bold", ajustes: dict | None = N
             faixas_extra.append(("sons", n_entrada()))
             entradas += ["-i", arq_sons]
             log(f"   sons: {', '.join(f'{nm} em {t:.1f} s' for t, nm in sorted(pontos))}")
-    if trilha not in (None, "", "nao") or trilha_arquivo:
+    if tem_trilha:
         from ..trilha import gerar as gerar_trilha, preparar_arquivo
         arq_trilha = pasta / "trilha.wav"
         if trilha_arquivo:
@@ -323,11 +332,12 @@ def legendar(video: Path, estilo: str = "creator-bold", ajustes: dict | None = N
         faixas_extra.append(("trilha", n_entrada()))
         entradas += ["-i", arq_trilha]
     if faixas_extra:
-        # voz na frente; trilha bem abaixo (~-30 LUFS) e abaixando sozinha quando a pessoa fala
+        # voz na frente; trilha abaixo dela (quanto, depende do tipo) e abaixando sozinha quando a pessoa fala
+        volume, ratio = TRILHA_TIPOS[trilha_tipo]
         partes, mix = ["[0:a]asplit=2[voz][chave]"], ["[voz]"]
         for nome, k in faixas_extra:
             if nome == "trilha":
-                partes.append(f"[{k}:a]volume={TRILHA_VOLUME}[trb];[trb][chave]sidechaincompress=threshold=0.02:ratio=6:"
+                partes.append(f"[{k}:a]volume={volume}[trb];[trb][chave]sidechaincompress=threshold=0.02:ratio={ratio}:"
                               f"attack=30:release=450:makeup=1[tr]")
                 mix.append("[tr]")
             else:
@@ -356,7 +366,8 @@ def legendar(video: Path, estilo: str = "creator-bold", ajustes: dict | None = N
     arq_blocos = job / f"legenda_{nome_seguro(Path(saida).stem)}.json"
     salvar_json(arq_blocos, {"estilo": None if sem_legenda else est, "blocos": [] if sem_legenda else tl, "saida": str(saida),
                              "gancho": gancho, "gancho_ate": gancho_ate, "cta": cta, "cta_em": cta_ini, "barra": barra,
-                             "sons": sorted(pontos), "trilha": trilha_arquivo and str(trilha_arquivo) or trilha})
+                             "sons": sorted(pontos), "trilha": trilha_arquivo and str(trilha_arquivo) or trilha,
+                             "trilha_tipo": trilha_tipo if tem_trilha else None})
     reg = saida_registrada(video) or {}
     registrar_saida(job, {"arquivo": str(Path(saida).resolve()), "etapa": "legendar", "estilo": None if sem_legenda else est["id"],
                           "palavras": origem if Path(origem).exists() else None, "mapa": reg.get("mapa"),

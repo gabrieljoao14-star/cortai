@@ -11,7 +11,8 @@ export const PalavraGigante: React.FC<{props: Props}> = ({props}) => {
   const s = useMola(0, 220, 14);
   const barra = useMola(0.18, 200, 26);
   const saida = useSaida();
-  const tam = Math.min(width * 0.22, (width * 0.9) / Math.max(3, texto.length * 0.62));
+  // 0,84 da altura por letra: em maiúsculas pesadas a letra é mais larga que 0,62 e "MULTADO" estourava o quadro (13/11)
+  const tam = Math.min(width * 0.22, (width * 0.86) / Math.max(3, texto.length * 0.84));
   const destaque = (props.destaque as string) || PADRAO.destaque;
   return (
     <>
@@ -19,8 +20,8 @@ export const PalavraGigante: React.FC<{props: Props}> = ({props}) => {
       <div style={{position: 'absolute', left: 0, right: 0, top: topoDe(props.posicao, height, props.y), textAlign: 'center',
         transform: `scale(${(0.55 + 0.45 * s) * (1 + (1 - saida) * 0.08)})`, opacity: saida}}>
         {props.subtitulo ? (
-          <div style={{fontFamily: sub, color: (props.cor as string) || PADRAO.cor, fontSize: tam * 0.26,
-            ...contorno(tam * 0.02), marginBottom: tam * 0.04}}>{String(props.subtitulo)}</div>
+          <div style={{fontFamily: sub, color: (props.cor as string) || PADRAO.cor, fontSize: Math.max(tam * 0.26, width * 0.05),
+            ...contorno(tam * 0.02), marginBottom: tam * 0.04, padding: `0 ${width * 0.06}px`}}>{String(props.subtitulo)}</div>
         ) : null}
         <div style={{fontFamily: fonte, fontSize: tam, lineHeight: 0.95, color: destaque, letterSpacing: `${(1 - s) * 0.12}em`,
           textTransform: 'uppercase', ...contorno(tam * 0.06)}}>{texto}</div>

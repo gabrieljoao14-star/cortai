@@ -5,6 +5,11 @@
   Número = trecho inteiro; [trecho, início, fim] = corta dentro do trecho (null mantém a borda).
 - `apertar`: mede pela energia da voz onde cada fala começa e termina e corta pausa interna > 0,22 s,
   sem criar corte < 0,15 s (vira "pulo" de imagem). Ligado por padrão no ritmo rápido.
+- O que conta como voz depende da sala: o motor mede o ruído de fundo da gravação e sobe o limiar a
+  partir dele (em sala com ruído de −35 dB o limiar fixo de −42 dB não achava pausa nenhuma, 13/11).
+- Com o limiar mais alto a fala "termina" mais cedo, então cada pedaço ganha um respiro de até 0,10 s
+  a mais no fim (0,19 s no total), sem entrar no trecho seguinte: sem ele a última sílaba ficava curta
+  e a palavra sumia na emenda. Em sala silenciosa a sobra continua a de sempre (0,09 s).
 
 Sincronia por construção (nota 01/04): cortes na grade de quadros (cada quadro = N amostras exatas),
 vídeo por select=between(n,…) em árvore balanceada e áudio fatiado na amostra com fade de 8 ms.
@@ -20,8 +25,15 @@ from .base import (Cronometro, CortaErro, ffmpeg, fps_saida, ler_json, log, nome
                    rodar, saida_livre, salvar_json)
 from .perfil import args_video, carregar as carregar_perfil
 
-LIMIAR_VOZ_DB = -42     # acima disso é voz (a −45 entra respiração)
+LIMIAR_VOZ_DB = -42     # sala silenciosa: acima disso é voz (a −45 entra respiração). É o piso do limiar.
 BORDA_DB = -45          # para recuperar consoante que o VAD cortou ("Clica" virava "lica")
+RUIDO_PERCENTIL = 12    # o ruído da sala é o nível dos 12 % mais baixos da gravação
+RUIDO_FOLGA = 8         # o limiar fica 8 dB acima do ruído…
+VOZ_FOLGA = 24          # …ou 24 dB abaixo da voz, o que for maior
+VOZ_TETO = 10           # e nunca a menos de 10 dB da voz (não pode comer sílaba fraca)
+RESPIRO = 0.10          # sobra a mais no fim de cada pedaço em sala com ruído (sem invadir o trecho seguinte)
+RESPIRO_CHEIO = 6       # o respiro cresce com o limiar e fica inteiro 6 dB acima do de sala silenciosa
+PALAVRA_MAX = 0.9       # pausa no meio de uma palavra mais curta que isso não é pausa
 BORDA_MAX = 0.30
 JANELA = 0.01
 REGIAO_MIN = 0.06       # som mais curto que isso é estalo
@@ -37,24 +49,51 @@ def _db_em(x: np.ndarray, sr: int, t: float) -> float:
     return float(20 * np.log10(np.sqrt((seg ** 2).mean()) + 1e-9)) if len(seg) else -120.0
 
 
-def _refinar(x, sr, s, e):
+def medir_limiar(x: np.ndarray, sr: int) -> dict:
+    """Mede o ruído da sala e a voz e devolve o limiar de voz desta gravação.
+
+    Sala silenciosa (ruído em −50 dB): dá −42, igual a antes. Sala com ruído em −35 dB: dá uns −27,
+    e as pausas voltam a aparecer. Números conferidos nas 18 gravações de 13/11.
+    """
+    n = int(JANELA * sr)
+    k = len(x) // n
+    if k < 50:                                    # menos de 0,5 s: não dá para medir
+        return {"limiar": float(LIMIAR_VOZ_DB), "ruido": None, "voz": None}
+    db = 20 * np.log10(np.sqrt((x[: k * n].reshape(k, n) ** 2).mean(1)) + 1e-9)
+    ruido = float(np.percentile(db, RUIDO_PERCENTIL))
+    alto = db[db > ruido + 15]
+    voz = float(np.percentile(alto, 50)) if len(alto) else -20.0
+    limiar = max(LIMIAR_VOZ_DB, min(max(ruido + RUIDO_FOLGA, voz - VOZ_FOLGA), voz - VOZ_TETO))
+    return {"limiar": round(float(limiar), 1), "ruido": round(ruido, 1), "voz": round(voz, 1)}
+
+
+def _refinar(x, sr, s, e, limiar: float = LIMIAR_VOZ_DB):
+    borda = BORDA_DB + (limiar - LIMIAR_VOZ_DB)      # em sala com ruído a borda sobe junto
     t = s
-    while t > max(0.0, s - BORDA_MAX) and _db_em(x, sr, t - JANELA) > BORDA_DB:
+    while t > max(0.0, s - BORDA_MAX) and _db_em(x, sr, t - JANELA) > borda:
         t -= JANELA
     s2 = max(0.0, min(s, t - 0.03))
     t = e
-    while t < e + BORDA_MAX and _db_em(x, sr, t) > BORDA_DB:
+    while t < e + BORDA_MAX and _db_em(x, sr, t) > borda:
         t += JANELA
     return s2, max(e, t + 0.03)
 
 
-def _regioes(x, sr, a, b):
+def _no_meio_de_palavra(palavras: list[dict] | None, s: float, e: float) -> bool:
+    """A "pausa" entre s e e cai dentro de uma palavra (consoante surda, vogal fraca)?"""
+    if not palavras:
+        return False
+    m = (s + e) / 2
+    return any(w["start"] + 0.06 < m < w["end"] - 0.06 and w["end"] - w["start"] < PALAVRA_MAX for w in palavras)
+
+
+def _regioes(x, sr, a, b, limiar: float = LIMIAR_VOZ_DB, palavras: list[dict] | None = None):
     n = int(JANELA * sr)
     seg = x[int(a * sr): int(b * sr)]
     k = len(seg) // n
     if not k:
         return []
-    on = 20 * np.log10(np.sqrt((seg[: k * n].reshape(k, n) ** 2).mean(1)) + 1e-9) > LIMIAR_VOZ_DB
+    on = 20 * np.log10(np.sqrt((seg[: k * n].reshape(k, n) ** 2).mean(1)) + 1e-9) > limiar
     out, i = [], 0
     while i < k:
         if on[i]:
@@ -67,14 +106,15 @@ def _regioes(x, sr, a, b):
             i += 1
     juntos = []
     for r in out:
-        if juntos and r[0] - juntos[-1][1] <= PAUSA_MAX:
+        if juntos and (r[0] - juntos[-1][1] <= PAUSA_MAX or _no_meio_de_palavra(palavras, juntos[-1][1], r[0])):
             juntos[-1][1] = r[1]
         else:
             juntos.append(r)
     return [r for r in juntos if r[1] - r[0] >= REGIAO_MIN]
 
 
-def _intervalos(trechos, plano, x, sr, apertar: bool, palavras: list[dict] | None = None):
+def _intervalos(trechos, plano, x, sr, apertar: bool, palavras: list[dict] | None = None,
+                limiar: float = LIMIAR_VOZ_DB):
     itens = sorted(plano, key=lambda it: it if isinstance(it, int) else it[0])
     brutos, faixas = [], []
     for it in itens:
@@ -83,11 +123,18 @@ def _intervalos(trechos, plano, x, sr, apertar: bool, palavras: list[dict] | Non
             raise CortaErro(f"takes.json fala do trecho {i}, mas só existem {len(trechos)} (T000–T{len(trechos) - 1:03d}).")
         faixas.append((so if so is not None else trechos[i][0], eo if eo is not None else trechos[i][1]))
         if apertar:
-            a = so if so is not None else trechos[i][0] - 0.3
-            b = eo if eo is not None else trechos[i][1] + 0.3
+            # a janela de busca não entra na fala do trecho vizinho (que pode ser um take tirado)
+            antes_ = trechos[i - 1][1] + 0.02 if i > 0 else 0.0
+            depois_ = trechos[i + 1][0] - 0.02 if i + 1 < len(trechos) else trechos[i][1] + 0.3
+            a = so if so is not None else max(0.0, min(trechos[i][0], max(antes_, trechos[i][0] - 0.3)))
+            b = eo if eo is not None else max(trechos[i][1], min(depois_, trechos[i][1] + 0.3))
+            # o respiro para na borda pedida no takes.json ou 0,05 s antes do trecho seguinte
+            teto = eo if eo is not None else max(trechos[i][1], min(b, depois_ - 0.03))
+            respiro = RESPIRO * min(1.0, max(0.0, (limiar - LIMIAR_VOZ_DB) / RESPIRO_CHEIO))
             pecas = []
-            for s, e in _regioes(x, sr, max(0.0, a), b):
+            for s, e in _regioes(x, sr, max(0.0, a), b, limiar, palavras):
                 s2, e2 = max(a, s - ANTES), min(b, e + DEPOIS)
+                e2 = max(e2, min(e2 + respiro, teto))
                 if pecas and s2 - pecas[-1][1] < CORTE_MIN:
                     pecas[-1][1] = e2
                 else:
@@ -95,7 +142,7 @@ def _intervalos(trechos, plano, x, sr, apertar: bool, palavras: list[dict] | Non
             if pecas:
                 brutos.extend(pecas)
                 continue
-        s, e = _refinar(x, sr, *trechos[i])
+        s, e = _refinar(x, sr, *trechos[i], limiar)
         brutos.append([so if so is not None else s, eo if eo is not None else e])
     # o aperto por volume não pode engolir palavra: em áudio baixo (gravação de reunião) ele cortava
     # "não", "via", "A". Palavra transcrita dentro de um take mantido volta inteira.
@@ -139,7 +186,8 @@ def _plano_na_janela(trechos, plano, ini: float, fim: float):
 
 def montar(video: Path, takes: Path | None = None, apertar: bool | None = None, saida: Path | None = None,
            formato: str | None = None, enquadrar: str = "rosto", zoom: str = "nao",
-           janela: tuple[float, float] | None = None, regioes: Path | None = None) -> Path:
+           janela: tuple[float, float] | None = None, regioes: Path | None = None,
+           limiar: float | None = None) -> Path:
     from .enquadrar import filtro as filtro_quadro, planos
     from .rosto import amostras, posicao
     video = video.resolve()
@@ -162,10 +210,20 @@ def montar(video: Path, takes: Path | None = None, apertar: bool | None = None, 
     spf = sr // F
 
     palavras = ler_json(job / "palavras.json") if (job / "palavras.json").exists() else None
-    intervalos = _intervalos(trechos, plano, mono, sr, apertar, palavras)
+    medida = medir_limiar(mono, sr)
+    if limiar is not None:                      # --limiar: a pessoa (ou o Claude) decide o número
+        medida["limiar"] = float(limiar)
+        log(f"   limiar de voz pedido: {limiar:.0f} dB")
+    elif medida["limiar"] > LIMIAR_VOZ_DB + 0.5:
+        log(f"   sala com ruído de fundo ({medida['ruido']:.0f} dB): pausa medida abaixo de {medida['limiar']:.0f} dB "
+            f"(sala silenciosa usa {LIMIAR_VOZ_DB} dB)")
+    intervalos = _intervalos(trechos, plano, mono, sr, apertar, palavras, medida["limiar"])
     if janela:
         intervalos = [[max(s, janela[0] - 0.15), min(e, janela[1] + 0.2)] for s, e in intervalos]
-    quadros = [(int(round(s * F)), int(round(e * F))) for s, e in intervalos]
+    # o último pedaço não passa do fim do vídeo: a sobra depois da última fala pedia quadros que não
+    # existem e o som ficava 2 quadros mais longo que a imagem (C-01, 13/11)
+    ultimo = int(min(info["duracao"], len(mono) / sr) * F)
+    quadros = [(int(round(s * F)), min(ultimo, int(round(e * F)))) for s, e in intervalos]
     quadros = [(a, b) for a, b in quadros if b > a]
     if not quadros:
         raise CortaErro("Nada para montar: a lista de takes ficou vazia.")
@@ -259,7 +317,7 @@ def montar(video: Path, takes: Path | None = None, apertar: bool | None = None, 
     arq_mapa, arq_pal = job / f"mapa_{nome}.json", job / f"palavras_{nome}.json"
     salvar_json(arq_mapa, {"fps": F, "apertar": apertar, "takes": str(takes) if takes else None, "janela": janela,
                            "formato": formato, "enquadrar": enquadrar if precisa_quadro else None, "zoom": zoom, "quadro": geo,
-                           "mapa": mapa})
+                           "limiar_db": medida["limiar"], "ruido_db": medida["ruido"], "mapa": mapa})
     salvar_json(arq_pal, palavras_saida)
     # compatibilidade: a última montagem também fica nos nomes fixos
     salvar_json(job / "mapa.json", ler_json(arq_mapa))

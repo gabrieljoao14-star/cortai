@@ -36,6 +36,10 @@ está estranho (vídeo sem voz, música alta): pare e conte à pessoa.
 `M montar V --takes "<…>/takes.json" --formato <formato> --enquadrar <enquadrar> --zoom <zoom>`
 (sem `--takes` se `erros-de-fala=nao`). Sai `nome (editado).mp4`.
 - `--formato` diferente do vídeo original recorta (ex.: horizontal → 9:16 segue o rosto).
+- **Sala com ruído** (ar-condicionado, rua, eco): o motor mede o ruído de fundo da gravação e ajusta sozinho
+  o que conta como pausa; quando isso acontece ele avisa `sala com ruído de fundo (… dB)`. Não precisa
+  fazer nada. Só se ainda sobrar pausa longa (confira a "maior pausa que sobrou" no `verificar`) ou sumir
+  fim de palavra, monte de novo com `--limiar <dB>` (mais alto corta mais; mais baixo corta menos).
 - Gravação de aula/tutorial com tela + câmera: rode antes `M regioes V`, **abra `regioes.png`** e confira
   as caixas; depois `--enquadrar tela-camera`. Se a tela mostrar dado pessoal (processo, cliente, extrato)
   ou nada útil, use `--enquadrar camera` (só a câmera, sem a tela).
@@ -47,6 +51,15 @@ as palavras dele já existem (o motor recusa e diz onde estão). Corrija:
 `M corrigir "<editado>.mp4" "errado=certo" "duas palavras=certo"` (só mexe nas palavras do editado; a
 pontuação é ignorada na busca; `--em 12.4` troca só a ocorrência perto desse segundo; palavra que faltou
 entra assim: `"aquele aposentado=Sabe aquele aposentado"`).
+
+**Pontuação** (releia o `M texto` depois de corrigir: vírgula e ponto têm que estar no lugar certo):
+- trocando várias palavras, a pontuação fica **no lugar**, não vai junto com a palavra
+  (`"aqui, doutor=doutor aqui"` dá "doutor, aqui");
+- pontuação escrita do lado certo vale como está: `"doutor aqui=doutor, aqui."`;
+- para mexer só na pontuação ou na maiúscula, use `--exato` (acha a palavra escrita daquele jeito e põe o
+  lado certo ao pé da letra): `M corrigir --exato "<editado>.mp4" "advogado. E=advogado, e" "fim.=fim"`;
+- `"errado|próxima=certo"` troca só quando a palavra seguinte é `próxima`:
+  `M corrigir --exato "<editado>.mp4" "fim.|Mas=fim,"` troca o ponto só antes de "Mas".
 Nome próprio que você não tem certeza: pergunte.
 
 ## 5. Gancho e CTA (se pedidos)
@@ -59,7 +72,9 @@ da fala da chamada).
 o rosto, sem palavra cortada. Mostre à pessoa (a não ser `direto`).
 
 ## 7. Legenda e acabamento (uma gravação só)
-`M legendar "<editado>.mp4" --estilo <estilo> [--ajuste …] [--gancho "…"] [--cta "…" --cta-em S] [--barra] [--sons poucos] [--trilha <estilo>] [--efeitos efeitos.json]`
+`M legendar "<editado>.mp4" --estilo <estilo> [--ajuste …] [--gancho "…"] [--cta "…" --cta-em S] [--barra] [--sons poucos] [--trilha <estilo>] [--trilha-tipo anuncio|vsl] [--efeitos efeitos.json]`
+Com trilha, diga sempre o tipo: `--trilha-tipo anuncio` em criativo/anúncio/reels curto (música presente);
+vídeo longo de venda (VSL) e aula ficam no padrão `vsl` (música discreta).
 Efeitos e trilha: ver [motion-e-trilha.md](motion-e-trilha.md) (inclui o ciclo de crítica).
 Sai `nome (legendado).mp4`. Sem legenda mas com acabamento: `--estilo nenhuma`.
 
@@ -71,6 +86,18 @@ Sai `nome (legendado).mp4`. Sem legenda mas com acabamento: `--estilo nenhuma`.
   fala de quem apresenta, refaça a montagem incluindo esse pedaço.
 - `[4]` desvio > 2 quadros ou `[6]` atraso > 150 ms: a sincronia falhou — não entregue; rode
   `M diagnostico` e investigue.
+- `[7]` o motor **ouve o vídeo final inteiro** e mostra o texto ouvido. **Leia esse texto inteiro como
+  roteiro**: é ali que aparece resto de take, frase dita duas vezes e fala de bastidor ("pode cortar",
+  "de novo"). Cada linha ⚠ precisa de resposta antes de entregar:
+  - "ouve-se a mais …": resto de take ou bastidor → tire esse pedaço no `takes.json` (`[trecho, início, fim]`
+    com os tempos de `palavras.json`) e monte de novo;
+  - "está no texto e não se ouve …" na emenda: palavra engolida → devolva a borda (aumente o fim do
+    pedaço no `takes.json`) e monte de novo;
+  - "… é dito em X s e de novo em Y s": recomeço que ficou → fica só o último take completo;
+  - se a linha ⚠ for só o Whisper ouvindo diferente (repetição de propósito, nome próprio), diga isso à
+    pessoa em uma frase. Nunca entregue com ⚠ do `[7]` sem explicar.
+  Depois de corrigir, rode o `verificar` de novo no arquivo novo. `--sem-retranscrever` só serve para
+  repetir a conferência quando o texto já foi conferido e a mudança foi só de imagem (cor, legenda).
 
 ## Vários vídeos (pasta com 2 ou mais vídeos)
 1. Rode `M lote "<pasta>" --voz <voz> --ritmo <ritmo>` **em segundo plano**. Ele prepara, transcreve e lista

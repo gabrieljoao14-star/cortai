@@ -6,7 +6,10 @@ próprios dados que a geraram). Mede no ARQUIVO FINAL:
 [3] o som de cada pedaço é a voz certa do original (semelhança no ponto mapeado);
 [4] a imagem de cada pedaço é o quadro certo do original (6 pontos, tolerância 2 quadros);
 [5] volume final e maior pausa que sobrou;
-[6] se tem legenda: re-transcreve 3 janelas do arquivo final e mede o atraso da legenda.
+[6] se tem legenda: mede o atraso da legenda contra a fala re-transcrita do arquivo final;
+[7] ouve o arquivo final INTEIRO (re-transcrição em janelas) e compara com o texto da edição: resto de
+    take, palavra engolida na emenda, fala de bastidor e frase repetida viram aviso, e o texto ouvido
+    sai inteiro para ser lido (`--sem-retranscrever` pula; aí o [6] mede só 3 janelas).
 """
 from __future__ import annotations
 
@@ -134,7 +137,7 @@ def _norm(p):
     return re.sub(r"[^\wà-ú]", "", p.lower())
 
 
-def verificar(saida: Path) -> bool:
+def verificar(saida: Path, retranscrever: bool = True, idioma: str = "pt") -> bool:
     saida = saida.resolve()
     if not saida.exists():
         raise CortaErro(f"Não achei {saida}")
@@ -308,34 +311,72 @@ def verificar(saida: Path) -> bool:
     relatorio["volume_lufs"] = float(lufs[-1]) if lufs else None
     relatorio["maior_pausa"] = maior * 0.01
 
+    # o arquivo final inteiro, ouvido de novo (serve ao [6] e ao [7])
+    tem_palavras = bool(reg.get("palavras")) and Path(reg["palavras"]).exists()
+    ref = ler_json(reg["palavras"]) if tem_palavras else []
+    ouvidas = None
+    if retranscrever and tem_palavras:
+        from . import texto_final
+        log(f"    ouvindo o vídeo final inteiro ({dv:.0f} s) para conferir o texto…")
+        ouvidas = texto_final.ouvir(fim, idioma, avisar=lambda q, n, t: log(f"    {t:.0f} s de {dv:.0f} s"))
+
     # [6] legenda
-    if reg.get("etapa") == "legendar" and reg.get("palavras") and Path(reg["palavras"]).exists():
-        from .transcrever import modelo
-        ref = ler_json(reg["palavras"])
-        m = modelo()
+    if reg.get("etapa") == "legendar" and tem_palavras:
         desvios = []
-        for c in np.linspace(0.15, 0.85, 3) * dv:
-            a = max(0.0, c - 5)
-            seg = fim[int(a * 16000): int((a + 10) * 16000)]
-            ws = [w for z in m.transcribe(seg, language="pt", word_timestamps=True, vad_filter=False,
-                                          condition_on_previous_text=False)[0] for w in (z.words or [])]
-            for w in ws:
-                t, n = a + w.start, _norm(w.word)
-                cand = [r_ for r_ in ref if _norm(r_["word"]) == n and abs(r_["start"] - t) < 1.0]
-                if n and cand:
-                    desvios.append(min((r_["start"] - t for r_ in cand), key=abs))
+        if ouvidas is not None:
+            ws, onde = [(w["start"], w["word"]) for w in ouvidas], "do vídeo inteiro"
+        else:
+            from .transcrever import modelo
+            m = modelo()
+            ws, onde = [], "de 3 janelas"
+            for c in np.linspace(0.15, 0.85, 3) * dv:
+                a = max(0.0, c - 5)
+                seg = fim[int(a * 16000): int((a + 10) * 16000)]
+                ws += [(a + w.start, w.word) for z in m.transcribe(seg, language=idioma, word_timestamps=True, vad_filter=False,
+                                                                   condition_on_previous_text=False)[0] for w in (z.words or [])]
+        for t, palavra in ws:
+            n = _norm(palavra)
+            cand = [r_ for r_ in ref if _norm(r_["word"]) == n and abs(r_["start"] - t) < 1.0]
+            if n and cand:
+                desvios.append(min((r_["start"] - t for r_ in cand), key=abs))
         if desvios:
             med = float(np.median(desvios))
-            log(f"[6] legenda × fala (re-transcrição de 3 janelas, {len(desvios)} palavras): atraso mediano {med * 1000:+.0f} ms")
+            log(f"[6] legenda × fala (re-transcrição {onde}, {len(desvios)} palavras): atraso mediano {med * 1000:+.0f} ms")
             ok &= abs(med) < 0.15
             relatorio["legenda_atraso_ms"] = round(med * 1000)
+
+    # [7] o texto que se ouve × o texto da edição
+    if ouvidas is not None:
+        emendas = [m_["saida"][0] for m_ in mapa[1:]]
+        cmp_ = texto_final.comparar(ref, ouvidas, emendas)
+        linhas = texto_final.em_linhas(ouvidas)
+        n7 = sum(len(cmp_[k]) for k in ("sobras", "faltas", "trocas", "repetidas"))
+        log(f"[7] texto ouvido no vídeo final: {cmp_['palavras_ouvidas']} palavras · iguais às da edição: {cmp_['iguais']} de "
+            f"{cmp_['palavras_esperadas']} · pontos para conferir: {n7}")
+        for s_ in cmp_["sobras"]:
+            extra = f" (no lugar de \"{s_['no_lugar_de']}\")" if s_.get("no_lugar_de") else ""
+            log(f"    ⚠ {s_['em']:.1f} s: ouve-se a mais \"{s_['texto']}\"{extra}"
+                + (" — bem na emenda: resto de take?" if s_["emenda"] else " — fala de bastidor ou resto de take?"))
+        for f_ in cmp_["faltas"]:
+            extra = f" (ouvi \"{f_['ouvido']}\")" if f_.get("ouvido") else ""
+            log(f"    ⚠ {f_['em']:.1f} s: está no texto e não se ouve \"{f_['texto']}\"{extra}"
+                + (" — bem na emenda: palavra engolida?" if f_["emenda"] else ""))
+        for t_ in cmp_["trocas"]:
+            log(f"    ⚠ {t_['em']:.1f} s, na emenda: ouve-se \"{t_['texto']}\" onde o texto diz \"{t_['esperado']}\" (palavra cortada?)")
+        for r_ in cmp_["repetidas"]:
+            log(f"    ⚠ \"{r_['texto']}\" é dito em {r_['em']:.1f} s e de novo em {r_['de_novo_em']:.1f} s (recomeço que ficou?)")
+        log("    texto ouvido (leia inteiro: tem que ser o roteiro, sem sobra e sem repetição):")
+        for l in linhas:
+            log(f"      {l}")
+        relatorio["texto_final"] = {**cmp_, "linhas": linhas}
+        avisos += n7
     for tmp in (job / "_v16.wav", job / "_f16.wav"):
         tmp.unlink(missing_ok=True)
     relatorio["ok"] = bool(ok)
     relatorio["avisos"] = avisos
     salvar_json(job / f"verificacao_{saida.stem}.json", relatorio)
     if ok and avisos:
-        log(f"RESULTADO: OK ✅ com {avisos} aviso(s) para conferir (ouça o trecho do original citado em [2])")
+        log(f"RESULTADO: OK ✅ com {avisos} aviso(s) para conferir (cada linha ⚠ acima: ouça o trecho antes de entregar)")
     else:
         log("RESULTADO: " + ("OK ✅" if ok else "ATENÇÃO ⚠️"))
     return bool(ok)
